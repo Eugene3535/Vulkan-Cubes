@@ -29,6 +29,7 @@ find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 set(SRC_FILES
     ${PROJECT_SOURCE_DIR}/src/main.cpp
+	${PROJECT_SOURCE_DIR}/src/Application.cpp
 )
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
