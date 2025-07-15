@@ -196,16 +196,15 @@ private:
     bool framebufferResized = false;
 
     void initWindow() noexcept;
-    static void framebufferResizeCallback(GLFWwindow *window, int width, int height) noexcept;
     void initVulkan() noexcept;
     void mainLoop() noexcept;
     void cleanupSwapChain() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void createInstance() noexcept;
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) noexcept;
-    void setupDebugMessenger() noexcept;
-    void pickPhysicalDevice() noexcept;
+
+    bool createInstance()     noexcept;
+    bool pickPhysicalDevice() noexcept;
+
     void createSurface() noexcept;
     void createLogicalDevice() noexcept;
     void createSwapChain() noexcept;
@@ -250,7 +249,6 @@ private:
     bool checkValidationLayerSupport() noexcept;
 
     static std::vector<char> readFile(const std::string &filename) noexcept;
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) noexcept;
 };
 
 #endif // !APPLICATION_HPP
