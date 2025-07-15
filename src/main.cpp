@@ -3,14 +3,7 @@
 
 int main()
 {
-    try
-    {
-        Application().run();
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
+    Application().run();
 
     return EXIT_SUCCESS;
 }

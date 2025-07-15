@@ -1,8 +1,7 @@
-#ifndef MAIN_HPP
-#define MAIN_HPP
+#ifndef APPLICATION_HPP
+#define APPLICATION_HPP
 
 #ifdef _WIN32
-    #define NOMINMAX
     #define VK_USE_PLATFORM_WIN32_KHR
 #endif
 
@@ -18,7 +17,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <stdexcept>
 #include <algorithm>
 #include <chrono>
 #include <vector>
@@ -31,29 +29,27 @@
 #include <optional>
 #include <set>
 
+
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
+
 
 const std::array<const char*, 1> validationLayers = 
 {
     "VK_LAYER_KHRONOS_validation"
 };
 
+
 const std::array<const char*, 1> deviceExtensions = 
 {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger);
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator);
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) noexcept;
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator) noexcept;
 
 struct QueueFamilyIndices
 {
@@ -66,6 +62,7 @@ struct QueueFamilyIndices
     }
 };
 
+
 struct SwapChainSupportDetails
 {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -73,13 +70,14 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+
 struct Vertex
 {
     glm::vec2 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
 
-    static VkVertexInputBindingDescription getBindingDescription()
+    static VkVertexInputBindingDescription getBindingDescription() noexcept
     {
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
@@ -89,7 +87,7 @@ struct Vertex
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions()
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() noexcept
     {
         std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
@@ -112,12 +110,14 @@ struct Vertex
     }
 };
 
+
 struct UniformBufferObject
 {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
 };
+
 
 const std::vector<Vertex> vertices = 
 {
@@ -127,21 +127,17 @@ const std::vector<Vertex> vertices =
     {{ -0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }}
 };
 
+
 const std::array<uint16_t, 6> indices = 
 {
     0, 1, 2, 2, 3, 0
 };
 
+
 class Application
 {
 public:
-    void run()
-    {
-        initWindow();
-        initVulkan();
-        mainLoop();
-        cleanup();
-    }
+    void run() noexcept;
 
 private:
     GLFWwindow *window;
@@ -199,62 +195,62 @@ private:
 
     bool framebufferResized = false;
 
-    void initWindow();
-    static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
-    void initVulkan();
-    void mainLoop();
-    void cleanupSwapChain();
-    void cleanup();
-    void recreateSwapChain();
-    void createInstance();
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-    void setupDebugMessenger();
-    void pickPhysicalDevice();
-    void createSurface();
-    void createLogicalDevice();
-    void createSwapChain();
-    void createImageViews();
-    void createRenderPass();
-    void createDescriptorSetLayout();
-    void createGraphicsPipeline();
-    void createFramebuffers();
-    void createCommandPool();
-    void createTextureImage();
-    void createTextureImageView();
-    void createTextureSampler();
-    VkImageView createImageView(VkImage image, VkFormat format);
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory);
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-    void createVertexBuffer();
-    void createIndexBuffer();
-    void createUniformBuffers();
-    void createDescriptorPool();
-    void createDescriptorSets();
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory);
+    void initWindow() noexcept;
+    static void framebufferResizeCallback(GLFWwindow *window, int width, int height) noexcept;
+    void initVulkan() noexcept;
+    void mainLoop() noexcept;
+    void cleanupSwapChain() noexcept;
+    void cleanup() noexcept;
+    void recreateSwapChain() noexcept;
+    void createInstance() noexcept;
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) noexcept;
+    void setupDebugMessenger() noexcept;
+    void pickPhysicalDevice() noexcept;
+    void createSurface() noexcept;
+    void createLogicalDevice() noexcept;
+    void createSwapChain() noexcept;
+    void createImageViews() noexcept;
+    void createRenderPass() noexcept;
+    void createDescriptorSetLayout() noexcept;
+    void createGraphicsPipeline() noexcept;
+    void createFramebuffers() noexcept;
+    void createCommandPool() noexcept;
+    void createTextureImage() noexcept;
+    void createTextureImageView() noexcept;
+    void createTextureSampler() noexcept;
+    VkImageView createImageView(VkImage image, VkFormat format) noexcept;
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory) noexcept;
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) noexcept;
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) noexcept;
+    void createVertexBuffer() noexcept;
+    void createIndexBuffer() noexcept;
+    void createUniformBuffers() noexcept;
+    void createDescriptorPool() noexcept;
+    void createDescriptorSets() noexcept;
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &bufferMemory) noexcept;
 
-    VkCommandBuffer beginSingleTimeCommands();
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-    void createCommandBuffers();
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-    void createSyncObjects();
-    void updateUniformBuffer(uint32_t currentImage);
-    void drawFrame();
+    VkCommandBuffer beginSingleTimeCommands() noexcept;
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer) noexcept;
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) noexcept;
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) noexcept;
+    void createCommandBuffers() noexcept;
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) noexcept;
+    void createSyncObjects() noexcept;
+    void updateUniformBuffer(uint32_t currentImage) noexcept;
+    void drawFrame() noexcept;
 
-    VkShaderModule createShaderModule(const std::vector<char> &code);
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats);
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes);
+    VkShaderModule createShaderModule(const std::vector<char> &code) noexcept;
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) noexcept;
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) noexcept;
 
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) noexcept;
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) noexcept;
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) noexcept;
 
-    bool checkValidationLayerSupport();
+    bool checkValidationLayerSupport() noexcept;
 
-    static std::vector<char> readFile(const std::string &filename);
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData);
+    static std::vector<char> readFile(const std::string &filename) noexcept;
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) noexcept;
 };
 
-#endif MAIN_HPP
+#endif // !APPLICATION_HPP
