@@ -34,7 +34,7 @@ set(SRC_FILES
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 include(${CMAKE_SOURCE_DIR}/cmake/compile_shaders.cmake)
-compile_shaders(${CMAKE_SOURCE_DIR}/res/shaders ${CMAKE_BINARY_DIR}/shaders)
+compile_shaders(${CMAKE_SOURCE_DIR}/src/shaders ${CMAKE_BINARY_DIR}/shaders)
 
 add_compile_definitions("DEBUG=$<CONFIG:Debug>")
 
