@@ -28,8 +28,9 @@ find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 set(SRC_FILES
-    ${PROJECT_SOURCE_DIR}/src/main.cpp
-	${PROJECT_SOURCE_DIR}/src/Application.cpp
+    ${CMAKE_SOURCE_DIR}/src/main.cpp
+	# ${CMAKE_SOURCE_DIR}/src/Application.cpp
+	${CMAKE_SOURCE_DIR}/src/VulkanApi.cpp
 )
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
