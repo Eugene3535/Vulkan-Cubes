@@ -5,7 +5,7 @@
 
 #include "vulkan_api/utils/Constants.hpp"
 #include "vulkan_api/utils/Helpers.hpp"
-#include "vulkan_api/wrappers/VulkanInstance.hpp"
+#include "vulkan_api/wrappers/instance/VulkanInstance.hpp"
 
 
 VulkanInstance::VulkanInstance() noexcept:

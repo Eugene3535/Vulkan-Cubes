@@ -26,7 +26,8 @@
 
 #include "vulkan_api/utils/Defines.hpp"
 #include "vulkan_api/utils/Constants.hpp"
-#include "vulkan_api/wrappers/VulkanInstance.hpp"
+#include "vulkan_api/wrappers/instance/VulkanInstance.hpp"
+#include "vulkan_api/wrappers/physical_device/PhysicalDevice.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -143,7 +144,6 @@ private:
     void cleanupSwapChain() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    bool pickPhysicalDevice() noexcept;
     void createSurface() noexcept;
     void createLogicalDevice() noexcept;
     void createSwapChain() noexcept;
@@ -193,8 +193,7 @@ private:
     GLFWwindow* window;
 
     VulkanInstance m_instance;
-
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    PhysicalDevice m_physicalDevice;
 
     VkDebugUtilsMessengerEXT debugMessenger;
 

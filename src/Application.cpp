@@ -52,8 +52,9 @@ void Application::initWindow() noexcept
 bool Application::initVulkan() noexcept
 {
     if(!m_instance.create()) return false;
+    if(!m_physicalDevice.select(m_instance.handle)) return false;
     
-    pickPhysicalDevice();
+
     createSurface();
     createLogicalDevice();
     createSwapChain();      
@@ -152,7 +153,7 @@ void Application::cleanup() noexcept
 #endif // !DEBUG
 
     vkDestroySurfaceKHR(m_instance.handle, surface, nullptr);
-    m_instance.destroy(); //vkDestroyInstance(instance, nullptr);
+    m_instance.destroy();
 
     glfwDestroyWindow(window);
 
@@ -181,41 +182,6 @@ void Application::recreateSwapChain() noexcept
 }
 
 
-bool Application::pickPhysicalDevice() noexcept
-{
-    uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(m_instance.handle, &deviceCount, nullptr);
-
-    if (deviceCount)
-    {
-        std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(m_instance.handle, &deviceCount, devices.data());
-
-        for (const auto& device : devices) 
-        {
-            VkPhysicalDeviceProperties props;
-            vkGetPhysicalDeviceProperties(device, &props);
-
-            std::string msg = "Found physical device: " + std::string(props.deviceName, &props.deviceName[strlen(props.deviceName)]);
-            std::cout << msg << '\n';
-
-            if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
-            {
-                physicalDevice = device;
-            }
-            else if (props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-            {
-                physicalDevice = device;
-
-                return true;
-            }
-        }
-    }
-
-    return (physicalDevice != VK_NULL_HANDLE);
-}
-
-
 void Application::createSurface() noexcept
 {
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
@@ -232,7 +198,7 @@ void Application::createSurface() noexcept
 
 void Application::createLogicalDevice() noexcept
 {
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice.handle);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -264,7 +230,7 @@ void Application::createLogicalDevice() noexcept
     createInfo.ppEnabledLayerNames = validationLayers.data();
 #endif
 
-    if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS)
+    if (vkCreateDevice(m_physicalDevice.handle, &createInfo, nullptr, &device) != VK_SUCCESS)
     {
         printf("failed to create logical device!");
     }
@@ -276,7 +242,7 @@ void Application::createLogicalDevice() noexcept
 
 void Application::createSwapChain() noexcept
 {
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice.handle);
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -299,7 +265,7 @@ void Application::createSwapChain() noexcept
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice.handle);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
 
     if (indices.graphicsFamily != indices.presentFamily)
@@ -561,7 +527,7 @@ void Application::createFramebuffers() noexcept
 
 void Application::createCommandPool() noexcept
 {
-    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice.handle);
 
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -617,7 +583,7 @@ void Application::createTextureImageView() noexcept
 void Application::createTextureSampler() noexcept
 {
     VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+    vkGetPhysicalDeviceProperties(m_physicalDevice.handle, &properties);
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -994,7 +960,7 @@ void Application::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSiz
 uint32_t Application::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) noexcept
 {
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(m_physicalDevice.handle, &memProperties);
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
     {
