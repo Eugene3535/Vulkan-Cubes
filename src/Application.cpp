@@ -145,7 +145,7 @@ void Application::cleanup() noexcept
     vkDestroyDevice(device, nullptr);
 
 #ifdef DEBUG
-        DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+    DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 #endif // !DEBUG
 
     vkDestroySurfaceKHR(instance, surface, nullptr);

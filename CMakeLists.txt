@@ -21,23 +21,29 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-set(GLM_BUILD_LIBRARY OFF CACHE BOOL "Enable tests" FORCE)
+set(GLM_BUILD_LIBRARY OFF CACHE BOOL "" FORCE)
 
 find_package(Vulkan REQUIRED)
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 set(SRC_FILES
-    ${CMAKE_SOURCE_DIR}/src/main.cpp
-	# ${CMAKE_SOURCE_DIR}/src/Application.cpp
-	${CMAKE_SOURCE_DIR}/src/VulkanApi.cpp
+    src/main.cpp
+	src/Application.cpp
 )
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 include(${CMAKE_SOURCE_DIR}/cmake/compile_shaders.cmake)
 compile_shaders(${CMAKE_SOURCE_DIR}/src/shaders ${CMAKE_BINARY_DIR}/shaders)
 
-add_compile_definitions("DEBUG=$<CONFIG:Debug>")
+add_compile_definitions(DEBUG=$<CONFIG:Debug>)
+
+if(WIN32)
+	add_compile_definitions(
+		VK_USE_PLATFORM_WIN32_KHR
+		GLFW_EXPOSE_NATIVE_WIN32
+	)
+endif()
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
@@ -49,6 +55,7 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 target_include_directories(${PROJECT_NAME} PRIVATE   
 	${Vulkan_INCLUDE_DIRS}
 	${EXTERNAL_SOURCE_DIR}/stb
+	${CMAKE_SOURCE_DIR}/src
 )
 
 target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES} glfw glm)
