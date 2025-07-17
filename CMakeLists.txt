@@ -31,6 +31,7 @@ set(SRC_FILES
 	src/vulkan_api/utils/Helpers.cpp
     src/vulkan_api/wrappers/instance/VulkanInstance.cpp
 	src/vulkan_api/wrappers/physical_device/PhysicalDevice.cpp
+	src/vulkan_api/wrappers/logical_device/LogicalDevice.cpp
 	src/Application.cpp
 	src/main.cpp
 )

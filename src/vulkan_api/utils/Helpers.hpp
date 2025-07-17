@@ -6,6 +6,7 @@
 BEGIN_NAMESPACE_VK
 
 bool check_validation_layer_support() noexcept;
+uint32_t get_main_queue_family_index(void* physicalDevice) noexcept;
 
 END_NAMESPACE_VK
 

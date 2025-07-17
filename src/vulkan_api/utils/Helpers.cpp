@@ -36,4 +36,28 @@ bool check_validation_layer_support() noexcept
 }
 
 
+uint32_t get_main_queue_family_index(void* physicalDevice) noexcept
+{
+    if(physicalDevice)
+    {
+        auto device = static_cast<VkPhysicalDevice>(physicalDevice);
+
+        uint32_t queueFamilyCount;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        for (size_t i = 0; i < queueFamilies.size(); ++i)
+        {
+            if (queueFamilies[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT))
+            {
+                return static_cast<uint32_t>(i);
+            }
+        }
+    }
+
+    return UINT32_MAX;
+}
+
 END_NAMESPACE_VK

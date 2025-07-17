@@ -15,10 +15,7 @@ VulkanInstance::VulkanInstance() noexcept:
 }
 
 
-VulkanInstance::~VulkanInstance()
-{
-    destroy();
-}
+VulkanInstance::~VulkanInstance() = default;
 
 
 bool VulkanInstance::create() noexcept
