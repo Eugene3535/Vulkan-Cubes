@@ -9,6 +9,7 @@ public:
     ~LogicalDevice();
 
     bool create(struct VkPhysicalDevice_T* physicalDevice) noexcept;
+    void destroy() noexcept;
 
     struct VkDevice_T* handle;
     struct VkQueue_T*  queue;

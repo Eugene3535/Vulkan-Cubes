@@ -70,3 +70,13 @@ bool LogicalDevice::create(VkPhysicalDevice_T* physicalDevice) noexcept
 
     return false;
 }
+
+
+void LogicalDevice::destroy() noexcept
+{
+    if(handle)
+    {
+        vkDestroyDevice(handle, nullptr);
+        handle = nullptr;
+    }
+}

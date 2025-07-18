@@ -1,6 +1,8 @@
 #ifndef VULKAN_HELPERS_HPP
 #define VULKAN_HELPERS_HPP
 
+#include <cstdint>
+
 #include "vulkan_api/utils/Defines.hpp"
 
 BEGIN_NAMESPACE_VK

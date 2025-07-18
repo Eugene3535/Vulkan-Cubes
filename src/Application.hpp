@@ -28,6 +28,7 @@
 #include "vulkan_api/utils/Constants.hpp"
 #include "vulkan_api/wrappers/instance/VulkanInstance.hpp"
 #include "vulkan_api/wrappers/physical_device/PhysicalDevice.hpp"
+#include "vulkan_api/wrappers/logical_device/LogicalDevice.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -48,17 +49,6 @@ const std::array<const char*, 1> deviceExtensions =
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) noexcept;
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator) noexcept;
-
-struct QueueFamilyIndices
-{
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete()
-    {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
 
 
 struct SwapChainSupportDetails
@@ -145,7 +135,6 @@ private:
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
     void createSurface() noexcept;
-    void createLogicalDevice() noexcept;
     void createSwapChain() noexcept;
     void createImageViews() noexcept;
     void createRenderPass() noexcept;
@@ -183,9 +172,6 @@ private:
 
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) noexcept;
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) noexcept;
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) noexcept;
-
-    bool checkValidationLayerSupport() noexcept;
 
     static std::vector<char> readFile(const std::string &filename) noexcept;
 
@@ -194,15 +180,13 @@ private:
 
     VulkanInstance m_instance;
     PhysicalDevice m_physicalDevice;
+    LogicalDevice  m_logicalDevice;
+
 
     VkDebugUtilsMessengerEXT debugMessenger;
 
     VkSurfaceKHR surface;
 
-    VkDevice device;
-    
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
 
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;

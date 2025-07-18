@@ -1,6 +1,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include "vulkan_api/utils/Helpers.hpp"
 #include "Application.hpp"
 
 
@@ -53,10 +54,9 @@ bool Application::initVulkan() noexcept
 {
     if(!m_instance.create()) return false;
     if(!m_physicalDevice.select(m_instance.handle)) return false;
-    
+    if(!m_logicalDevice.create(m_physicalDevice.handle)) return false;
 
     createSurface();
-    createLogicalDevice();
     createSwapChain();      
     createImageViews();  
     createRenderPass();
@@ -87,7 +87,7 @@ void Application::mainLoop() noexcept
         drawFrame();
     }
 
-    vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(m_logicalDevice.handle);
 }
 
 
@@ -95,21 +95,23 @@ void Application::cleanupSwapChain() noexcept
 {
     for (auto framebuffer : swapChainFramebuffers)
     {
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
+        vkDestroyFramebuffer(m_logicalDevice.handle, framebuffer, nullptr);
     }
 
     for (auto imageView : swapChainImageViews)
     {
-        vkDestroyImageView(device, imageView, nullptr);
+        vkDestroyImageView(m_logicalDevice.handle, imageView, nullptr);
     }
 
-    vkDestroySwapchainKHR(device, swapChain, nullptr);
+    vkDestroySwapchainKHR(m_logicalDevice.handle, swapChain, nullptr);
 }
 
 
 void Application::cleanup() noexcept
 {
     cleanupSwapChain();
+
+    auto device = m_logicalDevice.handle;
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
@@ -146,7 +148,7 @@ void Application::cleanup() noexcept
 
     vkDestroyCommandPool(device, commandPool, nullptr);
 
-    vkDestroyDevice(device, nullptr);
+    m_logicalDevice.destroy();
 
 #ifdef DEBUG
     DestroyDebugUtilsMessengerEXT(m_instance.handle, debugMessenger, nullptr);
@@ -172,7 +174,7 @@ void Application::recreateSwapChain() noexcept
         glfwWaitEvents();
     }
 
-    vkDeviceWaitIdle(device);
+    vkDeviceWaitIdle(m_logicalDevice.handle);
 
     cleanupSwapChain();
 
@@ -193,50 +195,6 @@ void Application::createSurface() noexcept
     {
         printf("failed to create window surface!");
     }
-}
-
-
-void Application::createLogicalDevice() noexcept
-{
-    QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice.handle);
-
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
-    float queuePriority = 1.0f;
-    for (uint32_t queueFamily : uniqueQueueFamilies)
-    {
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = queueFamily;
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
-        queueCreateInfos.push_back(queueCreateInfo);
-    }
-
-    VkPhysicalDeviceFeatures deviceFeatures = {};
-    deviceFeatures.samplerAnisotropy = VK_TRUE;
-
-    VkDeviceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-    createInfo.pQueueCreateInfos = queueCreateInfos.data();
-    createInfo.pEnabledFeatures = &deviceFeatures;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-#ifdef DEBUG
-    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
-#endif
-
-    if (vkCreateDevice(m_physicalDevice.handle, &createInfo, nullptr, &device) != VK_SUCCESS)
-    {
-        printf("failed to create logical device!");
-    }
-
-    vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
 
@@ -264,34 +222,21 @@ void Application::createSwapChain() noexcept
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice.handle);
-    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
-    if (indices.graphicsFamily != indices.presentFamily)
-    {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = queueFamilyIndices;
-    }
-    else
-    {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    }
-
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    
     createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
 
-    if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
+    if (vkCreateSwapchainKHR(m_logicalDevice.handle, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
     {
         printf("failed to create swap chain!");
     }
 
-    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(m_logicalDevice.handle, swapChain, &imageCount, nullptr);
     swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
+    vkGetSwapchainImagesKHR(m_logicalDevice.handle, swapChain, &imageCount, swapChainImages.data());
 
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;
@@ -347,7 +292,7 @@ void Application::createRenderPass() noexcept
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
+    if (vkCreateRenderPass(m_logicalDevice.handle, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
     {
         printf("failed to create render pass!");
     }
@@ -376,7 +321,7 @@ void Application::createDescriptorSetLayout() noexcept
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
     layoutInfo.pBindings = bindings.data();
 
-    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+    if (vkCreateDescriptorSetLayout(m_logicalDevice.handle, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
     {
         printf("failed to create descriptor set layout!");
     }
@@ -469,7 +414,7 @@ void Application::createGraphicsPipeline() noexcept
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(m_logicalDevice.handle, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
     {
         printf("failed to create pipeline layout!");
     }
@@ -490,13 +435,13 @@ void Application::createGraphicsPipeline() noexcept
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS)
+    if (vkCreateGraphicsPipelines(m_logicalDevice.handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS)
     {
         printf("failed to create graphics pipeline!");
     }
 
-    vkDestroyShaderModule(device, fragShaderModule, nullptr);
-    vkDestroyShaderModule(device, vertShaderModule, nullptr);
+    vkDestroyShaderModule(m_logicalDevice.handle, fragShaderModule, nullptr);
+    vkDestroyShaderModule(m_logicalDevice.handle, vertShaderModule, nullptr);
 }
 
 
@@ -517,7 +462,7 @@ void Application::createFramebuffers() noexcept
         framebufferInfo.height = swapChainExtent.height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
+        if (vkCreateFramebuffer(m_logicalDevice.handle, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
         {
             printf("failed to create framebuffer!");
         }
@@ -527,14 +472,12 @@ void Application::createFramebuffers() noexcept
 
 void Application::createCommandPool() noexcept
 {
-    QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice.handle);
-
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+    poolInfo.queueFamilyIndex = vk::get_main_queue_family_index(m_physicalDevice.handle);
 
-    if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+    if (vkCreateCommandPool(m_logicalDevice.handle, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
     {
         printf("failed to create graphics command pool!");
     }
@@ -557,9 +500,9 @@ void Application::createTextureImage() noexcept
     createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void *data;
-    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+    vkMapMemory(m_logicalDevice.handle, stagingBufferMemory, 0, imageSize, 0, &data);
     memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(m_logicalDevice.handle, stagingBufferMemory);
 
     stbi_image_free(pixels);
 
@@ -569,8 +512,8 @@ void Application::createTextureImage() noexcept
     copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
     transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(m_logicalDevice.handle, stagingBuffer, nullptr);
+    vkFreeMemory(m_logicalDevice.handle, stagingBufferMemory, nullptr);
 }
 
 
@@ -600,7 +543,7 @@ void Application::createTextureSampler() noexcept
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
+    if (vkCreateSampler(m_logicalDevice.handle, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
     {
         printf("failed to create texture sampler!");
     }
@@ -621,7 +564,7 @@ VkImageView Application::createImageView(VkImage image, VkFormat format) noexcep
     viewInfo.subresourceRange.layerCount = 1;
 
     VkImageView imageView;
-    if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+    if (vkCreateImageView(m_logicalDevice.handle, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
     {
         printf("failed to create texture image view!");
     }
@@ -647,25 +590,25 @@ void Application::createImage(uint32_t width, uint32_t height, VkFormat format, 
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS)
+    if (vkCreateImage(m_logicalDevice.handle, &imageInfo, nullptr, &image) != VK_SUCCESS)
     {
         printf("failed to create image!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(device, image, &memRequirements);
+    vkGetImageMemoryRequirements(m_logicalDevice.handle, image, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+    if (vkAllocateMemory(m_logicalDevice.handle, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
     {
         printf("failed to allocate image memory!");
     }
 
-    vkBindImageMemory(device, image, imageMemory, 0);
+    vkBindImageMemory(m_logicalDevice.handle, image, imageMemory, 0);
 }
 
 
@@ -755,16 +698,16 @@ void Application::createVertexBuffer() noexcept
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void *data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(m_logicalDevice.handle, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, vertices.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(m_logicalDevice.handle, stagingBufferMemory);
 
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(m_logicalDevice.handle, stagingBuffer, nullptr);
+    vkFreeMemory(m_logicalDevice.handle, stagingBufferMemory, nullptr);
 }
 
 
@@ -777,16 +720,16 @@ void Application::createIndexBuffer() noexcept
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void *data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    vkMapMemory(m_logicalDevice.handle, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, indices.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
+    vkUnmapMemory(m_logicalDevice.handle, stagingBufferMemory);
 
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
     copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(m_logicalDevice.handle, stagingBuffer, nullptr);
+    vkFreeMemory(m_logicalDevice.handle, stagingBufferMemory, nullptr);
 }
 
 
@@ -802,7 +745,7 @@ void Application::createUniformBuffers() noexcept
     {
         createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
 
-        vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+        vkMapMemory(m_logicalDevice.handle, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
     }
 }
 
@@ -821,7 +764,7 @@ void Application::createDescriptorPool() noexcept
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
-    if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+    if (vkCreateDescriptorPool(m_logicalDevice.handle, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
     {
         printf("failed to create descriptor pool!");
     }
@@ -838,7 +781,7 @@ void Application::createDescriptorSets() noexcept
     allocInfo.pSetLayouts = layouts.data();
 
     descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
+    if (vkAllocateDescriptorSets(m_logicalDevice.handle, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
     {
         printf("failed to allocate descriptor sets!");
     }
@@ -873,7 +816,7 @@ void Application::createDescriptorSets() noexcept
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
 
-        vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(m_logicalDevice.handle, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 
@@ -886,25 +829,25 @@ void Application::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMe
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+    if (vkCreateBuffer(m_logicalDevice.handle, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
     {
         printf("failed to create buffer!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(m_logicalDevice.handle, buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+    if (vkAllocateMemory(m_logicalDevice.handle, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
     {
         printf("failed to allocate buffer memory!");
     }
 
-    vkBindBufferMemory(device, buffer, bufferMemory, 0);
+    vkBindBufferMemory(m_logicalDevice.handle, buffer, bufferMemory, 0);
 }
 
 
@@ -917,7 +860,7 @@ VkCommandBuffer Application::beginSingleTimeCommands() noexcept
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(m_logicalDevice.handle, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -938,10 +881,10 @@ void Application::endSingleTimeCommands(VkCommandBuffer commandBuffer) noexcept
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue);
+    vkQueueSubmit(m_logicalDevice.queue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(m_logicalDevice.queue);
 
-    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(m_logicalDevice.handle, commandPool, 1, &commandBuffer);
 }
 
 
@@ -986,7 +929,7 @@ void Application::createCommandBuffers() noexcept
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
-    if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(m_logicalDevice.handle, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
     {
         printf("failed to allocate command buffers!");
     }
@@ -1066,6 +1009,8 @@ void Application::createSyncObjects() noexcept
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
+        auto device = m_logicalDevice.handle;
+
         if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
             vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS)
@@ -1095,6 +1040,8 @@ void Application::updateUniformBuffer(uint32_t currentImage) noexcept
 
 void Application::drawFrame() noexcept
 {
+    auto device = m_logicalDevice.handle;
+
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -1133,7 +1080,7 @@ void Application::drawFrame() noexcept
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS)
+    if (vkQueueSubmit(m_logicalDevice.queue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS)
     {
         printf("failed to submit draw command buffer!");
     }
@@ -1150,7 +1097,7 @@ void Application::drawFrame() noexcept
 
     presentInfo.pImageIndices = &imageIndex;
 
-    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(m_logicalDevice.queue, &presentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
     {
@@ -1170,6 +1117,8 @@ void Application::drawFrame() noexcept
 
 VkShaderModule Application::createShaderModule(const std::vector<char> &code) noexcept
 {
+    auto device = m_logicalDevice.handle;
+
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
@@ -1261,75 +1210,6 @@ SwapChainSupportDetails Application::querySwapChainSupport(VkPhysicalDevice devi
     }
 
     return details;
-}
-
-
-QueueFamilyIndices Application::findQueueFamilies(VkPhysicalDevice device) noexcept
-{
-    QueueFamilyIndices indices;
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-    int i = 0;
-    for (const auto &queueFamily : queueFamilies)
-    {
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-        {
-            indices.graphicsFamily = i;
-        }
-
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-
-        if (presentSupport)
-        {
-            indices.presentFamily = i;
-        }
-
-        if (indices.isComplete())
-        {
-            break;
-        }
-
-        i++;
-    }
-
-    return indices;
-}
-
-
-bool Application::checkValidationLayerSupport() noexcept
-{
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-    for (const char* layerName : validationLayers)
-    {
-        bool layerFound = false;
-
-        for (const auto &layerProperties : availableLayers)
-        {
-            if (strcmp(layerName, layerProperties.layerName) == 0)
-            {
-                layerFound = true;
-                break;
-            }
-        }
-
-        if (!layerFound)
-        {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 
