@@ -17,7 +17,7 @@ PhysicalDevice::PhysicalDevice() noexcept:
 PhysicalDevice::~PhysicalDevice() = default;
 
 
-bool PhysicalDevice::select(VkInstance_T* instance) noexcept
+bool PhysicalDevice::select(VkInstance instance) noexcept
 {
     if(handle)
         return true;

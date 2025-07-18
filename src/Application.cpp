@@ -52,11 +52,11 @@ void Application::initWindow() noexcept
 
 bool Application::initVulkan() noexcept
 {
-    if(!m_instance.create()) return false;
-    if(!m_physicalDevice.select(m_instance.handle)) return false;
+    if(!m_instance.create())                             return false;
+    if(!m_physicalDevice.select(m_instance.handle))      return false;
     if(!m_logicalDevice.create(m_physicalDevice.handle)) return false;
+    if(!m_surface.create(m_instance.handle, window))     return false;
 
-    createSurface();
     createSwapChain();      
     createImageViews();  
     createRenderPass();
@@ -154,7 +154,7 @@ void Application::cleanup() noexcept
     DestroyDebugUtilsMessengerEXT(m_instance.handle, debugMessenger, nullptr);
 #endif // !DEBUG
 
-    vkDestroySurfaceKHR(m_instance.handle, surface, nullptr);
+    m_surface.destroy(m_instance.handle);
     m_instance.destroy();
 
     glfwDestroyWindow(window);
@@ -184,20 +184,6 @@ void Application::recreateSwapChain() noexcept
 }
 
 
-void Application::createSurface() noexcept
-{
-    VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
-    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.hwnd = glfwGetWin32Window(window);
-    surfaceCreateInfo.hinstance = GetModuleHandle(nullptr);
-
-    if(vkCreateWin32SurfaceKHR(m_instance.handle, &surfaceCreateInfo, nullptr, &surface) != VK_SUCCESS)
-    {
-        printf("failed to create window surface!");
-    }
-}
-
-
 void Application::createSwapChain() noexcept
 {
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice.handle);
@@ -214,7 +200,7 @@ void Application::createSwapChain() noexcept
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
+    createInfo.surface = m_surface.handle;
 
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
@@ -1187,8 +1173,9 @@ VkExtent2D Application::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabil
 
 SwapChainSupportDetails Application::querySwapChainSupport(VkPhysicalDevice device) noexcept
 {
-    SwapChainSupportDetails details;
+    auto surface = m_surface.handle;
 
+    SwapChainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
     uint32_t formatCount;

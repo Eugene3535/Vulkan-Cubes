@@ -29,6 +29,7 @@
 #include "vulkan_api/wrappers/instance/VulkanInstance.hpp"
 #include "vulkan_api/wrappers/physical_device/PhysicalDevice.hpp"
 #include "vulkan_api/wrappers/logical_device/LogicalDevice.hpp"
+#include "vulkan_api/wrappers/surface/Surface.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -134,7 +135,6 @@ private:
     void cleanupSwapChain() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void createSurface() noexcept;
     void createSwapChain() noexcept;
     void createImageViews() noexcept;
     void createRenderPass() noexcept;
@@ -181,12 +181,10 @@ private:
     VulkanInstance m_instance;
     PhysicalDevice m_physicalDevice;
     LogicalDevice  m_logicalDevice;
+    Surface        m_surface;
 
 
     VkDebugUtilsMessengerEXT debugMessenger;
-
-    VkSurfaceKHR surface;
-
 
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;
