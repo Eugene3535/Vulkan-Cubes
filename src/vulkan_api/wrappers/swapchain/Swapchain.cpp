@@ -7,7 +7,8 @@
 
 Swapchain::Swapchain() noexcept:
     handle(nullptr),
-	format(0)
+	format(0),
+	m_logicalDevice(nullptr)
 {
 
 }
@@ -18,6 +19,8 @@ Swapchain::~Swapchain() = default;
 
 bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, VkSurfaceKHR surface) noexcept
 {
+	m_logicalDevice = logicalDevice;
+
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
 
 	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phisycalDevice, surface, &surfaceCapabilities) != VK_SUCCESS)
@@ -59,17 +62,44 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 }
 
 
-void Swapchain::destroy(VkDevice logicalDevice) noexcept
+void Swapchain::createImageViews() noexcept
 {
-    // for (auto framebuffer : swapChainFramebuffers)
-    // {
-    //     vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
-    // }
+	if(!images.empty())
+	{
+		imageViews.resize(images.size());
 
-    // for (auto imageView : swapChainImageViews)
-    // {
-    //     vkDestroyImageView(logicalDevice, imageView, nullptr);
-    // }
+		for (size_t i = 0; i < images.size(); ++i)
+		{
+			VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = images[i];
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = static_cast<VkFormat>(format);
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
 
-    vkDestroySwapchainKHR(logicalDevice, handle, nullptr);
+			if (VkImageView imageView; (vkCreateImageView(m_logicalDevice, &viewInfo, nullptr, &imageView) == VK_SUCCESS))
+				imageViews[i] = imageView;	
+		}
+	}
+}
+
+
+void Swapchain::cleanup() noexcept
+{
+	if(m_logicalDevice)
+	{
+		// for (auto framebuffer : swapChainFramebuffers)
+		// {
+		//     vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
+		// }
+
+		for (auto imageView : imageViews)
+		    vkDestroyImageView(m_logicalDevice, imageView, nullptr);
+		
+		vkDestroySwapchainKHR(m_logicalDevice, handle, nullptr);
+	}
 }

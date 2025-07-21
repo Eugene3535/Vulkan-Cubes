@@ -136,7 +136,6 @@ private:
     void cleanupSwapChain() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void createImageViews() noexcept;
     void createRenderPass() noexcept;
     void createDescriptorSetLayout() noexcept;
     void createGraphicsPipeline() noexcept;
@@ -181,7 +180,6 @@ private:
 
     VkDebugUtilsMessengerEXT debugMessenger;
     
-    std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkRenderPass renderPass;

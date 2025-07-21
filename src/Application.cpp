@@ -58,7 +58,8 @@ bool Application::initVulkan() noexcept
     if(!m_surface.create(m_instance.handle, window))     return false;
     if(!m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle)) return false;
     
-    createImageViews();  
+    m_swapchain.createImageViews();
+
     createRenderPass();
     createDescriptorSetLayout();
     createGraphicsPipeline();
@@ -98,12 +99,7 @@ void Application::cleanupSwapChain() noexcept
         vkDestroyFramebuffer(m_logicalDevice.handle, framebuffer, nullptr);
     }
 
-    for (auto imageView : swapChainImageViews)
-    {
-        vkDestroyImageView(m_logicalDevice.handle, imageView, nullptr);
-    }
-
-    m_swapchain.destroy(m_logicalDevice.handle);
+    m_swapchain.cleanup();
 }
 
 
@@ -158,7 +154,6 @@ void Application::cleanup() noexcept
     m_instance.destroy();
 
     glfwDestroyWindow(window);
-
     glfwTerminate();
 }
 
@@ -179,19 +174,8 @@ void Application::recreateSwapChain() noexcept
     cleanupSwapChain();
 
     m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle);
-    createImageViews();
+    m_swapchain.createImageViews();
     createFramebuffers();
-}
-
-
-void Application::createImageViews() noexcept
-{
-    swapChainImageViews.resize(m_swapchain.images.size());
-
-    for (size_t i = 0; i < m_swapchain.images.size(); i++)
-    {
-        swapChainImageViews[i] = createImageView(m_swapchain.images[i], static_cast<VkFormat>(m_swapchain.format));
-    }
 }
 
 
@@ -391,11 +375,11 @@ void Application::createFramebuffers() noexcept
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
-    swapChainFramebuffers.resize(swapChainImageViews.size());
+    swapChainFramebuffers.resize(m_swapchain.imageViews.size());
 
-    for (size_t i = 0; i < swapChainImageViews.size(); i++)
+    for (size_t i = 0; i < m_swapchain.imageViews.size(); i++)
     {
-        VkImageView attachments = swapChainImageViews[i];
+        VkImageView attachments = m_swapchain.imageViews[i];
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -1093,6 +1077,7 @@ std::vector<char> Application::readFile(const std::string &filename) noexcept
     if (!file.is_open())
     {
         printf("failed to open file!");
+        return {};
     }
 
     size_t fileSize = (size_t)file.tellg();
