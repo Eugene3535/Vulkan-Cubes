@@ -139,6 +139,7 @@ private:
     void createRenderPass() noexcept;
     void createDescriptorSetLayout() noexcept;
     void createGraphicsPipeline() noexcept;
+    void createImageViews() noexcept;
     void createFramebuffers() noexcept;
     void createCommandPool() noexcept;
     void createTextureImage() noexcept;
@@ -180,6 +181,7 @@ private:
 
     VkDebugUtilsMessengerEXT debugMessenger;
     
+    std::vector<VkImageView_T*> imageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkRenderPass renderPass;

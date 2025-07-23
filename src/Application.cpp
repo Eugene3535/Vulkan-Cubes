@@ -58,8 +58,7 @@ bool Application::initVulkan() noexcept
     if(!m_surface.create(m_instance.handle, window))     return false;
     if(!m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle)) return false;
     
-    m_swapchain.createImageViews();
-
+    createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
     createGraphicsPipeline();
@@ -95,9 +94,10 @@ void Application::mainLoop() noexcept
 void Application::cleanupSwapChain() noexcept
 {
     for (auto framebuffer : swapChainFramebuffers)
-    {
         vkDestroyFramebuffer(m_logicalDevice.handle, framebuffer, nullptr);
-    }
+    
+    for (auto imageView : imageViews)
+		    vkDestroyImageView(m_logicalDevice.handle, imageView, nullptr);
 
     m_swapchain.cleanup();
 }
@@ -174,7 +174,7 @@ void Application::recreateSwapChain() noexcept
     cleanupSwapChain();
 
     m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle);
-    m_swapchain.createImageViews();
+    createImageViews();
     createFramebuffers();
 }
 
@@ -370,16 +370,42 @@ void Application::createGraphicsPipeline() noexcept
 }
 
 
+void Application::createImageViews() noexcept
+{
+	if(!m_swapchain.images.empty())
+	{
+		imageViews.resize(m_swapchain.images.size());
+
+		for (size_t i = 0; i < m_swapchain.images.size(); ++i)
+		{
+			VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.image = m_swapchain.images[i];
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = static_cast<VkFormat>(m_swapchain.format);
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+
+			if (VkImageView imageView; (vkCreateImageView(m_logicalDevice.handle, &viewInfo, nullptr, &imageView) == VK_SUCCESS))
+				imageViews[i] = imageView;	
+		}
+	}
+}
+
+
 void Application::createFramebuffers() noexcept
 {
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
-    swapChainFramebuffers.resize(m_swapchain.imageViews.size());
+    swapChainFramebuffers.resize(imageViews.size());
 
-    for (size_t i = 0; i < m_swapchain.imageViews.size(); i++)
+    for (size_t i = 0; i < imageViews.size(); i++)
     {
-        VkImageView attachments = m_swapchain.imageViews[i];
+        VkImageView attachments = imageViews[i];
 
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
