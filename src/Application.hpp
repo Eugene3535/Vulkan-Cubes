@@ -31,6 +31,7 @@
 #include "vulkan_api/wrappers/logical_device/LogicalDevice.hpp"
 #include "vulkan_api/wrappers/surface/Surface.hpp"
 #include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
+#include "vulkan_api/wrappers/render_pass/RenderPass.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -136,7 +137,6 @@ private:
     void cleanupSwapChain() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void createRenderPass() noexcept;
     void createDescriptorSetLayout() noexcept;
     void createGraphicsPipeline() noexcept;
     void createImageViews() noexcept;
@@ -177,14 +177,13 @@ private:
     LogicalDevice  m_logicalDevice;
     Surface        m_surface;
     Swapchain      m_swapchain;
-
+    RenderPass     m_renderPass;
 
     VkDebugUtilsMessengerEXT debugMessenger;
     
     std::vector<VkImageView_T*> imageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkRenderPass renderPass;
     VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;

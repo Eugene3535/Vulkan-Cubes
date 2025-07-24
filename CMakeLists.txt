@@ -35,6 +35,7 @@ set(SRC_FILES
 	src/vulkan_api/wrappers/logical_device/LogicalDevice.cpp
 	src/vulkan_api/wrappers/surface/Surface.cpp
 	src/vulkan_api/wrappers/swapchain/Swapchain.cpp
+	src/vulkan_api/wrappers/render_pass/RenderPass.cpp
 	src/Application.cpp
 	src/main.cpp
 )
