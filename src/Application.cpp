@@ -57,11 +57,11 @@ bool Application::initVulkan() noexcept
     if(!m_logicalDevice.create(m_physicalDevice.handle)) return false;
     if(!m_surface.create(m_instance.handle, window))     return false;
     if(!m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle)) return false;
-    if(!m_renderPass.create(m_logicalDevice.handle, m_swapchain.format)) return false;
+    if(!m_renderPass.create(m_logicalDevice.handle, m_swapchain, window)) return false;
 
 
-    createImageViews();
-    createFramebuffers();
+    // createImageViews();
+    // createFramebuffers();
 
     createDescriptorSetLayout();
     createGraphicsPipeline();
@@ -94,21 +94,10 @@ void Application::mainLoop() noexcept
 }
 
 
-void Application::cleanupSwapChain() noexcept
-{
-    for (auto framebuffer : swapChainFramebuffers)
-        vkDestroyFramebuffer(m_logicalDevice.handle, framebuffer, nullptr);
-    
-    for (auto imageView : imageViews)
-		    vkDestroyImageView(m_logicalDevice.handle, imageView, nullptr);
-
-    m_swapchain.cleanup();
-}
-
-
 void Application::cleanup() noexcept
 {
-    cleanupSwapChain();
+    m_renderPass.destroy(m_logicalDevice.handle);
+    m_swapchain.destroy(m_logicalDevice.handle);
 
     auto device = m_logicalDevice.handle;
 
@@ -174,11 +163,10 @@ void Application::recreateSwapChain() noexcept
 
     vkDeviceWaitIdle(m_logicalDevice.handle);
 
-    cleanupSwapChain();
-
+    m_renderPass.destroy(m_logicalDevice.handle);
+    m_swapchain.destroy(m_logicalDevice.handle);
     m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle);
-    createImageViews();
-    createFramebuffers();
+    m_renderPass.create(m_logicalDevice.handle, m_swapchain, window);
 }
 
 
@@ -325,60 +313,6 @@ void Application::createGraphicsPipeline() noexcept
 
     vkDestroyShaderModule(m_logicalDevice.handle, fragShaderModule, nullptr);
     vkDestroyShaderModule(m_logicalDevice.handle, vertShaderModule, nullptr);
-}
-
-
-void Application::createImageViews() noexcept
-{
-	if(!m_swapchain.images.empty())
-	{
-		imageViews.resize(m_swapchain.images.size());
-
-		for (size_t i = 0; i < m_swapchain.images.size(); ++i)
-		{
-			VkImageViewCreateInfo viewInfo{};
-			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			viewInfo.image = m_swapchain.images[i];
-			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			viewInfo.format = static_cast<VkFormat>(m_swapchain.format);
-			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			viewInfo.subresourceRange.baseMipLevel = 0;
-			viewInfo.subresourceRange.levelCount = 1;
-			viewInfo.subresourceRange.baseArrayLayer = 0;
-			viewInfo.subresourceRange.layerCount = 1;
-
-			if (VkImageView imageView; (vkCreateImageView(m_logicalDevice.handle, &viewInfo, nullptr, &imageView) == VK_SUCCESS))
-				imageViews[i] = imageView;	
-		}
-	}
-}
-
-
-void Application::createFramebuffers() noexcept
-{
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-
-    swapChainFramebuffers.resize(imageViews.size());
-
-    for (size_t i = 0; i < imageViews.size(); i++)
-    {
-        VkImageView attachments = imageViews[i];
-
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_renderPass.handle;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = &attachments;
-        framebufferInfo.width = width;
-        framebufferInfo.height = height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(m_logicalDevice.handle, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS)
-        {
-            printf("failed to create framebuffer!");
-        }
-    }
 }
 
 
@@ -865,7 +799,7 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass.handle;
-    renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+    renderPassInfo.framebuffer = m_renderPass.framebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = extent;
 

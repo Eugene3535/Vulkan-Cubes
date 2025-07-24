@@ -7,8 +7,7 @@
 
 Swapchain::Swapchain() noexcept:
     handle(nullptr),
-	format(0),
-	m_logicalDevice(nullptr)
+	format(0)
 {
 
 }
@@ -21,8 +20,6 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 {
 	if(handle)
 		return true;
-
-	m_logicalDevice = logicalDevice;
 
 	VkSurfaceCapabilitiesKHR surfaceCapabilities;
 
@@ -64,11 +61,11 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 }
 
 
-void Swapchain::cleanup() noexcept
+void Swapchain::destroy(struct VkDevice_T* logicalDevice) noexcept
 {
-	if(m_logicalDevice)
+	if(handle)
 	{
-		vkDestroySwapchainKHR(m_logicalDevice, handle, nullptr);
+		vkDestroySwapchainKHR(logicalDevice, handle, nullptr);
 		handle = nullptr;
 	}
 }

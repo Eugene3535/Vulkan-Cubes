@@ -134,13 +134,10 @@ private:
     void initWindow() noexcept;
     bool initVulkan() noexcept;
     void mainLoop() noexcept;
-    void cleanupSwapChain() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
     void createDescriptorSetLayout() noexcept;
     void createGraphicsPipeline() noexcept;
-    void createImageViews() noexcept;
-    void createFramebuffers() noexcept;
     void createCommandPool() noexcept;
     void createTextureImage() noexcept;
     void createTextureImageView() noexcept;
@@ -180,9 +177,6 @@ private:
     RenderPass     m_renderPass;
 
     VkDebugUtilsMessengerEXT debugMessenger;
-    
-    std::vector<VkImageView_T*> imageViews;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
 
     VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
