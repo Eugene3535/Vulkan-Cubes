@@ -60,31 +60,28 @@ bool RenderPass::create(VkDevice logicalDevice, const Swapchain& swapchain, GLFW
         return false;
 
 //  Image views
-    if(!swapchain.images.empty())
+    for (size_t i = 0; i < swapchain.images.size(); ++i)
     {
-        for (size_t i = 0; i < swapchain.images.size(); ++i)
-        {
-            VkImageViewCreateInfo viewInfo{};
-            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            viewInfo.image = swapchain.images[i];
-            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            viewInfo.format = static_cast<VkFormat>(swapchain.format);
-            viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            viewInfo.subresourceRange.baseMipLevel = 0;
-            viewInfo.subresourceRange.levelCount = 1;
-            viewInfo.subresourceRange.baseArrayLayer = 0;
-            viewInfo.subresourceRange.layerCount = 1;
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = swapchain.images[i];
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = static_cast<VkFormat>(swapchain.format);
+        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
 
-            if (VkImageView imageView; (vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView) == VK_SUCCESS))
-                imageViews[i] = imageView;	
-        }
+        if (VkImageView imageView; (vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView) == VK_SUCCESS))
+            imageViews[i] = imageView;	
     }
 
 //  Framebuffers
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
-    for (size_t i = 0; i < imageViews.size(); i++)
+    for (size_t i = 0; i < imageViews.size(); ++i)
     {
         VkImageView attachments = imageViews[i];
 

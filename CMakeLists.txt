@@ -36,6 +36,8 @@ set(SRC_FILES
 	src/vulkan_api/wrappers/surface/Surface.cpp
 	src/vulkan_api/wrappers/swapchain/Swapchain.cpp
 	src/vulkan_api/wrappers/render_pass/RenderPass.cpp
+	src/vulkan_api/wrappers/shader/ShaderModule.cpp
+	src/vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.cpp
 	src/Application.cpp
 	src/main.cpp
 )

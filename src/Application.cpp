@@ -2,27 +2,8 @@
 #include <stb_image.h>
 
 #include "vulkan_api/utils/Helpers.hpp"
+#include "vulkan_api/wrappers/shader/ShaderModule.hpp"
 #include "Application.hpp"
-
-
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger) noexcept
-{
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-
-    if (func)
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-}
-
-
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks *pAllocator) noexcept
-{
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-
-    if (func)
-        func(instance, debugMessenger, pAllocator);
-}
 
 
 void Application::run() noexcept
@@ -52,16 +33,13 @@ void Application::initWindow() noexcept
 
 bool Application::initVulkan() noexcept
 {
-    if(!m_instance.create())                             return false;
-    if(!m_physicalDevice.select(m_instance.handle))      return false;
-    if(!m_logicalDevice.create(m_physicalDevice.handle)) return false;
-    if(!m_surface.create(m_instance.handle, window))     return false;
+    if(!m_instance.create())                                                                   return false;
+    if(!m_physicalDevice.select(m_instance.handle))                                            return false;
+    if(!m_logicalDevice.create(m_physicalDevice.handle))                                       return false;
+    if(!m_surface.create(m_instance.handle, window))                                           return false;
     if(!m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle)) return false;
-    if(!m_renderPass.create(m_logicalDevice.handle, m_swapchain, window)) return false;
+    if(!m_renderPass.create(m_logicalDevice.handle, m_swapchain, window))                      return false;
 
-
-    // createImageViews();
-    // createFramebuffers();
 
     createDescriptorSetLayout();
     createGraphicsPipeline();
@@ -138,10 +116,6 @@ void Application::cleanup() noexcept
 
     m_logicalDevice.destroy();
 
-#ifdef DEBUG
-    DestroyDebugUtilsMessengerEXT(m_instance.handle, debugMessenger, nullptr);
-#endif // !DEBUG
-
     m_surface.destroy(m_instance.handle);
     m_instance.destroy();
 
@@ -201,25 +175,32 @@ void Application::createDescriptorSetLayout() noexcept
 
 void Application::createGraphicsPipeline() noexcept
 {
-    auto vertShaderCode = readFile("res/shaders/vertex_shader.spv");
-    auto fragShaderCode = readFile("res/shaders/fragment_shader.spv");
+    ShaderModule vertShaderModule;
+    ShaderModule fragShaderModule;
 
-    VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-    VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+    if(!vertShaderModule.loadFromFile(m_logicalDevice.handle, { "res/shaders/vertex_shader.spv" }))
+        return;
+
+    if(!fragShaderModule.loadFromFile(m_logicalDevice.handle, { "res/shaders/fragment_shader.spv" }))
+        return;
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.module = vertShaderModule.handle;
     vertShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.module = fragShaderModule.handle;
     fragShaderStageInfo.pName = "main";
 
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    VkPipelineShaderStageCreateInfo shaderStages[] = 
+    {
+        vertShaderStageInfo, 
+        fragShaderStageInfo
+    };
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -272,9 +253,12 @@ void Application::createGraphicsPipeline() noexcept
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    std::vector<VkDynamicState> dynamicStates = {
+    std::array<VkDynamicState, 2> dynamicStates = 
+    {
         VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR};
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
@@ -311,8 +295,8 @@ void Application::createGraphicsPipeline() noexcept
         printf("failed to create graphics pipeline!");
     }
 
-    vkDestroyShaderModule(m_logicalDevice.handle, fragShaderModule, nullptr);
-    vkDestroyShaderModule(m_logicalDevice.handle, vertShaderModule, nullptr);
+    vertShaderModule.destroy(m_logicalDevice.handle);
+    fragShaderModule.destroy(m_logicalDevice.handle);
 }
 
 
@@ -966,45 +950,4 @@ void Application::drawFrame() noexcept
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
     Sleep(16);
-}
-
-
-VkShaderModule Application::createShaderModule(const std::vector<char> &code) noexcept
-{
-    auto device = m_logicalDevice.handle;
-
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
-
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-    {
-        printf("failed to create shader module!");
-    }
-
-    return shaderModule;
-}
-
-
-std::vector<char> Application::readFile(const std::string &filename) noexcept
-{
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open())
-    {
-        printf("failed to open file!");
-        return {};
-    }
-
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
-
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-
-    file.close();
-
-    return buffer;
 }

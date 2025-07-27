@@ -163,9 +163,6 @@ private:
     void updateUniformBuffer(uint32_t currentImage) noexcept;
     void drawFrame() noexcept;
 
-    VkShaderModule createShaderModule(const std::vector<char> &code) noexcept;
-    static std::vector<char> readFile(const std::string &filename) noexcept;
-
 
     GLFWwindow* window;
 
@@ -176,7 +173,6 @@ private:
     Swapchain      m_swapchain;
     RenderPass     m_renderPass;
 
-    VkDebugUtilsMessengerEXT debugMessenger;
 
     VkDescriptorSetLayout descriptorSetLayout;
     VkPipelineLayout pipelineLayout;
