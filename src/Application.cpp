@@ -129,7 +129,7 @@ void Application::cleanup() noexcept
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
 
-    for (size_t i = 0; i < m_swapchain.buffer_count; ++i)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
@@ -668,11 +668,9 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
 void Application::createSyncObjects() noexcept
 {
-    auto frame_count = m_swapchain.buffer_count;
-
-    imageAvailableSemaphores.resize(frame_count);
-    renderFinishedSemaphores.resize(frame_count);
-    inFlightFences.resize(frame_count);
+    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -681,7 +679,7 @@ void Application::createSyncObjects() noexcept
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for (size_t i = 0; i < frame_count; ++i)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         auto device = m_logicalDevice.handle;
 
@@ -723,7 +721,7 @@ void Application::drawFrame() noexcept
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, m_swapchain.handle, UINT64_MAX, imageAvailableSemaphores[currentSemaphore], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, m_swapchain.handle, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -746,12 +744,12 @@ void Application::drawFrame() noexcept
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = imageAvailableSemaphores.data() + currentSemaphore;
+    submitInfo.pWaitSemaphores = imageAvailableSemaphores.data() + currentFrame;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_commandPool.commandBuffers[currentFrame];
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentSemaphore];
+    submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
 
     if (auto result = vkQueueSubmit(m_logicalDevice.queue, 1, &submitInfo, inFlightFences[currentFrame]); result != VK_SUCCESS)
     {
@@ -761,7 +759,7 @@ void Application::drawFrame() noexcept
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores    = &renderFinishedSemaphores[currentSemaphore];
+    presentInfo.pWaitSemaphores    = &renderFinishedSemaphores[currentFrame];
     presentInfo.swapchainCount     = 1;
     presentInfo.pSwapchains        = &m_swapchain.handle;
     presentInfo.pImageIndices      = &imageIndex;
@@ -782,7 +780,6 @@ void Application::drawFrame() noexcept
     }
 
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-    currentSemaphore = needResetSemaphoreIndex ? 0 : (imageIndex + 1) % m_swapchain.buffer_count;
 
     Sleep(16);
 }
