@@ -19,9 +19,12 @@ const std::vector<Vertex> vertices =
 void Application::run() noexcept
 {
     initWindow();
-    initVulkan();
-    mainLoop();
-    cleanup();
+
+    if(initVulkan())
+    {
+        mainLoop();
+        cleanup();
+    }
 }
 
 

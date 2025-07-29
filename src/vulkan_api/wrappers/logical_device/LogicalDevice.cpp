@@ -50,7 +50,7 @@ bool LogicalDevice::create(VkPhysicalDevice physicalDevice) noexcept
         const std::array<const char*, 2> requiredExtensions = 
         {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_EXT_MEMORY_BUDGET_EXTENSION_NAME
+            VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
         };
 
         uint32_t extensionCount;
@@ -68,14 +68,21 @@ bool LogicalDevice::create(VkPhysicalDevice physicalDevice) noexcept
             if(deviceExtensions.find(extension) == deviceExtensions.end())
                 return false;
 
+        constexpr VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_feature = 
+        {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+            .dynamicRendering = VK_TRUE
+        };
+
         VkDeviceCreateInfo deviceCreateInfo = {};
     	deviceCreateInfo.sType				     = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.pNext                   = &dynamic_rendering_feature;
     	deviceCreateInfo.queueCreateInfoCount	 = 1;
     	deviceCreateInfo.pQueueCreateInfos	     = &queueCreateInfo;
     	deviceCreateInfo.pEnabledFeatures		 = &enabledFeatures;
     	deviceCreateInfo.enabledExtensionCount   = static_cast<uint32_t>(requiredExtensions.size());
     	deviceCreateInfo.ppEnabledExtensionNames = requiredExtensions.data();
-#ifdef _DEBUG
+#ifdef DEBUG
     	deviceCreateInfo.enabledLayerCount       = static_cast<uint32_t>(VALIDATION_LAYERS.size());
     	deviceCreateInfo.ppEnabledLayerNames     = VALIDATION_LAYERS.data();
 #endif
