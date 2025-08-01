@@ -31,7 +31,6 @@
 #include "vulkan_api/wrappers/logical_device/LogicalDevice.hpp"
 #include "vulkan_api/wrappers/surface/Surface.hpp"
 #include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
-#include "vulkan_api/wrappers/render_pass/RenderPass.hpp"
 #include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
 
@@ -96,7 +95,6 @@ private:
     LogicalDevice     m_logicalDevice;
     Surface           m_surface;
     Swapchain         m_swapchain;
-    RenderPass        m_renderPass;
     GraphicsPipeline  m_pipeline;
     CommandBufferPool m_commandPool;
 

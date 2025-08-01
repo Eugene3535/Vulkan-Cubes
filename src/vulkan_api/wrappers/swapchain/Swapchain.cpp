@@ -77,7 +77,33 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
         uint32_t imageCount = buffer_count;
 
         if (vkGetSwapchainImagesKHR(logicalDevice, handle, &imageCount, images.data()) == VK_SUCCESS)
-            return true;
+        {
+			for (size_t i = 0; i < images.size(); ++i)
+			{
+				VkImageViewCreateInfo viewInfo = 
+				{
+					.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+					.image = images[i],
+					.viewType = VK_IMAGE_VIEW_TYPE_2D,
+					.format = static_cast<VkFormat>(format),
+					.subresourceRange = 
+					{
+						.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+						.baseMipLevel = 0,
+						.levelCount = 1,
+						.baseArrayLayer = 0,
+						.layerCount = 1
+					}
+				};
+
+				if (VkImageView imageView; (vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView) == VK_SUCCESS))
+					imageViews[i] = imageView;
+				else
+					return false;
+			}
+
+			return true;
+		}
 	}
 
     return false;
@@ -88,6 +114,9 @@ void Swapchain::destroy(struct VkDevice_T* logicalDevice) noexcept
 {
 	if(handle)
 	{
+		for (auto imageView : imageViews)
+        	vkDestroyImageView(logicalDevice, imageView, nullptr);
+
 		vkDestroySwapchainKHR(logicalDevice, handle, nullptr);
 		handle = nullptr;
 	}

@@ -3,7 +3,7 @@
 #include <vulkan/vulkan.h>
 
 #include "vulkan_api/wrappers/shader/ShaderModule.hpp"
-#include "vulkan_api/wrappers/render_pass/RenderPass.hpp"
+#include "vulkan_api/wrappers/swapchain/Swapchain.hpp"
 #include "vulkan_api/utils/Structures.hpp"
 #include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
 
@@ -20,7 +20,7 @@ GraphicsPipeline::GraphicsPipeline() noexcept:
 GraphicsPipeline::~GraphicsPipeline() = default;
 
 
-bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class ShaderModule> shaders, const RenderPass& renderPass) noexcept
+bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class ShaderModule> shaders, const Swapchain& swapchain) noexcept
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding            = 0;
@@ -137,21 +137,32 @@ bool GraphicsPipeline::create(VkDevice logicalDevice, std::span<const class Shad
     if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS)
         return false;
 
-    VkGraphicsPipelineCreateInfo pipelineInfo = {};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages.data();
-    pipelineInfo.pVertexInputState = &vertexInputInfo;
-    pipelineInfo.pInputAssemblyState = &inputAssembly;
-    pipelineInfo.pViewportState = &viewportState;
-    pipelineInfo.pRasterizationState = &rasterizer;
-    pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = layout;
-    pipelineInfo.renderPass = renderPass.handle;
-    pipelineInfo.subpass = 0;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+    const VkPipelineRenderingCreateInfoKHR pipeline_rendering_create_info =
+    {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+        .colorAttachmentCount = 1,
+        .pColorAttachmentFormats = reinterpret_cast<const VkFormat*>(&swapchain.format)
+    };
+
+    VkGraphicsPipelineCreateInfo pipelineInfo = 
+    {
+        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .pNext = &pipeline_rendering_create_info,
+        .stageCount = 2,
+        .pStages = shaderStages.data(),
+        .pVertexInputState = &vertexInputInfo,
+        .pInputAssemblyState = &inputAssembly,
+        .pViewportState = &viewportState,
+        .pRasterizationState = &rasterizer,
+        .pMultisampleState = &multisampling,
+        .pColorBlendState = &colorBlending,
+        .pDynamicState = &dynamicState,
+        .layout = layout,
+        .renderPass = nullptr,
+        .subpass = 0,
+        .basePipelineHandle = VK_NULL_HANDLE
+    };
+
 
     return (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &handle) == VK_SUCCESS);
 }

@@ -50,12 +50,11 @@ bool Application::initVulkan() noexcept
     glfwGetFramebufferSize(window, &width, &height);
 
     {// Common
-        if(!m_instance.create())                                                                   return false;
-        if(!m_physicalDevice.select(m_instance.handle))                                            return false;
-        if(!m_logicalDevice.create(m_physicalDevice.handle))                                       return false;
-        if(!m_surface.create(m_instance.handle, window))                                           return false;
+        if(!m_instance.create())                             return false;
+        if(!m_physicalDevice.select(m_instance.handle))      return false;
+        if(!m_logicalDevice.create(m_physicalDevice.handle)) return false;
+        if(!m_surface.create(m_instance.handle, window))     return false;
         if(!m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle, width, height)) return false;
-        if(!m_renderPass.create(m_logicalDevice.handle, m_swapchain, window))                      return false;
     }
 
     {// Pipeline
@@ -67,7 +66,7 @@ bool Application::initVulkan() noexcept
         if(!shaders[1].loadFromFile(m_logicalDevice.handle, { "res/shaders/fragment_shader.spv" }))
             return false;
 
-        if(!m_pipeline.create(m_logicalDevice.handle, { shaders }, m_renderPass)) 
+        if(!m_pipeline.create(m_logicalDevice.handle, { shaders }, m_swapchain)) 
             return false;
 
         shaders[0].destroy(m_logicalDevice.handle);
@@ -107,10 +106,8 @@ void Application::cleanup() noexcept
 {
     auto device = m_logicalDevice.handle;
 
-    m_renderPass.destroy(device);
     m_swapchain.destroy(device);
     m_pipeline.destroy(device);
-    vkDestroyRenderPass(device, m_renderPass.handle, nullptr);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -164,11 +161,8 @@ void Application::recreateSwapChain() noexcept
 
     vkDeviceWaitIdle(m_logicalDevice.handle);
 
-    m_renderPass.destroy(m_logicalDevice.handle);
     m_swapchain.destroy(m_logicalDevice.handle);
-
     m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle, width, height);
-    m_renderPass.create(m_logicalDevice.handle, m_swapchain, window);
 }
 
 
@@ -609,31 +603,70 @@ uint32_t Application::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags 
 
 void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) noexcept
 {
-    VkCommandBufferBeginInfo beginInfo{};
+    VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
     {
         printf("failed to begin recording command buffer!");
+        return;
     }
 
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
+    const VkImageMemoryBarrier image_memory_barrier_begin 
+    {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .image = m_swapchain.images[imageIndex],
+        .subresourceRange = 
+        {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,  // srcStageMask
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // dstStageMask
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1, // imageMemoryBarrierCount
+        &image_memory_barrier_begin // pImageMemoryBarriers
+    );
+
     VkExtent2D extent = { m_swapchain.m_width, m_swapchain.m_height };
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass.handle;
-    renderPassInfo.framebuffer = m_renderPass.framebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = extent;
-
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
 
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    const VkRenderingAttachmentInfoKHR color_attachment_info = 
+    {
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
+        .imageView = m_swapchain.imageViews[imageIndex],
+        .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .clearValue = clearColor
+    };
 
+    VkRect2D renderArea = { {0, 0}, extent };
+
+    const VkRenderingInfoKHR render_info =
+    {
+        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+        .renderArea = renderArea,
+        .layerCount = 1,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &color_attachment_info,
+    };
+
+    vkCmdBeginRendering(commandBuffer, &render_info);
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.handle);
 
     VkViewport viewport{};
@@ -660,7 +693,37 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
-    vkCmdEndRenderPass(commandBuffer);
+    vkCmdEndRendering(commandBuffer);
+
+    const VkImageMemoryBarrier image_memory_barrier_end
+    {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        .image = m_swapchain.images[imageIndex],
+        .subresourceRange = 
+        {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+
+    vkCmdPipelineBarrier(
+        commandBuffer,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,  // srcStageMask
+        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, // dstStageMask
+        0,
+        0,
+        nullptr,
+        0,
+        nullptr,
+        1, // imageMemoryBarrierCount
+        &image_memory_barrier_end // pImageMemoryBarriers
+    );
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
     {

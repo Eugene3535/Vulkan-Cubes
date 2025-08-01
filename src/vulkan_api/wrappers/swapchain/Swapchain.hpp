@@ -17,7 +17,8 @@ public:
 
     VkSwapchainKHR_T* handle;
     int32_t format;
-    std::array<VkImage_T*, buffer_count> images;
+    std::array<struct VkImage_T*, buffer_count> images;
+    std::array<struct VkImageView_T*, buffer_count> imageViews;
     uint32_t m_width; 
     uint32_t m_height;
 };
