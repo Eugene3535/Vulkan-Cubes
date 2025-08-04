@@ -31,4 +31,14 @@ struct Vertex
     static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() noexcept;
 };
 
+
+struct VulkanApi
+{
+    VkPhysicalDevice physicalDevice = nullptr;
+    VkDevice         logicalDevice = nullptr;
+    VkQueue          queue = nullptr;
+    VkCommandPool    commandPool = nullptr;
+};
+
+
 #endif // !STRUCTURS_HPP

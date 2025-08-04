@@ -34,6 +34,7 @@
 #include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
 #include "vulkan_api/wrappers/sync/SyncManager.hpp"
+#include "vulkan_api/wrappers/texture/Texture2D.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -98,12 +99,8 @@ private:
     GraphicsPipeline  m_pipeline;
     CommandBufferPool m_commandPool;
     SyncManager       m_sync;
+    Texture2D         m_texture;
 
-
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
 
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
