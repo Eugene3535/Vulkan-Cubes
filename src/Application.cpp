@@ -6,15 +6,6 @@
 #include "Application.hpp"
 
 
-const std::vector<Vertex> vertices = 
-{
-    {{ -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f }},
-    {{  0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f }},
-    {{  0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f }},
-    {{ -0.5f,  0.5f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }}
-};
-
-
 void Application::run() noexcept
 {
     initWindow();
@@ -84,9 +75,8 @@ bool Application::initVulkan() noexcept
     };
 
     if(!m_texture.loadFromFile("res/textures/container.jpg", api)) return false;
+    if(!m_mesh.create(api)) return false;
 
-    createVertexBuffer();
-    createIndexBuffer();
     createUniformBuffers();
 
     createDescriptorPool();
@@ -124,12 +114,7 @@ void Application::cleanup() noexcept
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
     m_texture.destroy(device);
-
-    vkDestroyBuffer(device, indexBuffer, nullptr);
-    vkFreeMemory(device, indexBufferMemory, nullptr);
-
-    vkDestroyBuffer(device, vertexBuffer, nullptr);
-    vkFreeMemory(device, vertexBufferMemory, nullptr);
+    m_mesh.destroy(device);
 
     m_sync.destroy(device);
 
@@ -160,50 +145,6 @@ void Application::recreateSwapChain() noexcept
 
     m_swapchain.destroy(m_logicalDevice.handle);
     m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle, width, height);
-}
-
-
-void Application::createVertexBuffer() noexcept
-{
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void *data;
-    vkMapMemory(m_logicalDevice.handle, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(), (size_t)bufferSize);
-    vkUnmapMemory(m_logicalDevice.handle, stagingBufferMemory);
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-    vkDestroyBuffer(m_logicalDevice.handle, stagingBuffer, nullptr);
-    vkFreeMemory(m_logicalDevice.handle, stagingBufferMemory, nullptr);
-}
-
-
-void Application::createIndexBuffer() noexcept
-{
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void *data;
-    vkMapMemory(m_logicalDevice.handle, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), (size_t)bufferSize);
-    vkUnmapMemory(m_logicalDevice.handle, stagingBufferMemory);
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-    vkDestroyBuffer(m_logicalDevice.handle, stagingBuffer, nullptr);
-    vkFreeMemory(m_logicalDevice.handle, stagingBufferMemory, nullptr);
 }
 
 
@@ -477,15 +418,15 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     scissor.extent = extent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    VkBuffer vertexBuffers[] = {vertexBuffer};
+    VkBuffer vertexBuffers[] = {m_mesh.vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindIndexBuffer(commandBuffer, m_mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.layout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_mesh.getIndexCount()), 1, 0, 0, 0);
 
     vkCmdEndRendering(commandBuffer);
 
@@ -528,11 +469,6 @@ void Application::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
 void Application::updateUniformBuffer(uint32_t currentImage) noexcept
 {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     VkExtent2D extent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };

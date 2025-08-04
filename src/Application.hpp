@@ -35,6 +35,7 @@
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
 #include "vulkan_api/wrappers/sync/SyncManager.hpp"
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
+#include "vulkan_api/wrappers/mesh/Mesh.hpp"
 
 
 const uint32_t WIDTH = 800;
@@ -49,10 +50,10 @@ struct UniformBufferObject
 };
 
 
-const std::array<uint16_t, 6> indices = 
-{
-    0, 1, 2, 2, 3, 0
-};
+// const std::array<uint16_t, 6> indices = 
+// {
+//     0, 1, 2, 2, 3, 0
+// };
 
 
 class Application
@@ -66,15 +67,7 @@ private:
     void mainLoop() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void createTextureImage() noexcept;
-    void createTextureImageView() noexcept;
-    void createTextureSampler() noexcept;
-    VkImageView createImageView(VkImage image, VkFormat format) noexcept;
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &imageMemory) noexcept;
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) noexcept;
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) noexcept;
-    void createVertexBuffer() noexcept;
-    void createIndexBuffer() noexcept;
+
     void createUniformBuffers() noexcept;
     void createDescriptorPool() noexcept;
     void createDescriptorSets() noexcept;
@@ -99,13 +92,9 @@ private:
     GraphicsPipeline  m_pipeline;
     CommandBufferPool m_commandPool;
     SyncManager       m_sync;
-    Texture2D         m_texture;
 
-
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+    Texture2D m_texture;
+    Mesh      m_mesh;
 
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
