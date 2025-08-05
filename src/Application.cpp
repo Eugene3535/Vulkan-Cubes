@@ -1,8 +1,15 @@
+
+#include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
 #include <stb_image.h>
 
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/shader/ShaderModule.hpp"
 #include "Application.hpp"
+
+
+const uint32_t WIDTH = 800;
+const uint32_t HEIGHT = 600;
 
 
 void Application::run() noexcept
@@ -32,7 +39,6 @@ void Application::initWindow() noexcept
                 app->framebufferResized = true;
         });
     }
-
 }
 
 

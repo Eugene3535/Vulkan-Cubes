@@ -1,5 +1,4 @@
-#include <algorithm>
-#include <limits>
+#include <glm/common.hpp>
 
 #include "vulkan_api/utils/Structures.hpp"
 #include "vulkan_api/utils/Helpers.hpp"
@@ -8,7 +7,7 @@
 
 static VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height) noexcept
 {
-    if (capabilities.currentExtent.width != (std::numeric_limits<uint32_t>::max)())
+    if (capabilities.currentExtent.width != UINT_MAX)
     {
         return capabilities.currentExtent;
     }
@@ -20,8 +19,8 @@ static VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilitie
             height
         };
 
-        actualExtent.width  = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+        actualExtent.width  = glm::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        actualExtent.height = glm::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
         return actualExtent;
     }
