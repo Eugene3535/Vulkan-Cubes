@@ -1,6 +1,7 @@
 #ifndef MESH_HPP
 #define MESH_HPP
 
+#include <cstdint>
 
 class Mesh
 {
@@ -10,7 +11,7 @@ public:
     bool create(const struct VulkanApi& api) noexcept;
     void destroy(struct VkDevice_T* logicalDevice) noexcept;
 
-    unsigned getIndexCount() noexcept;
+    uint32_t getIndexCount() const noexcept;
     
     struct VkBuffer_T*       vertexBuffer;
     struct VkDeviceMemory_T* vertexBufferMemory;

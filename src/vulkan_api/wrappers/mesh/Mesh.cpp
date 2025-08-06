@@ -84,7 +84,7 @@ void Mesh::destroy(VkDevice logicalDevice) noexcept
 }
 
 
-unsigned Mesh::getIndexCount() noexcept
+uint32_t Mesh::getIndexCount() const noexcept
 {
-    return indices.size();
+    return static_cast<uint32_t>(indices.size());
 }

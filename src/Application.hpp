@@ -28,7 +28,6 @@ private:
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) noexcept;
     void updateUniformBuffer(uint32_t currentImage) noexcept;
     void drawFrame() noexcept;
 
