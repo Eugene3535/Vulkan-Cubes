@@ -28,7 +28,7 @@ Mesh::Mesh() noexcept:
 }
 
 
-bool Mesh::create(const VulkanApi& api) noexcept
+bool Mesh::create(const VulkanData& api) noexcept
 {
     {// Vertex buffer
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();

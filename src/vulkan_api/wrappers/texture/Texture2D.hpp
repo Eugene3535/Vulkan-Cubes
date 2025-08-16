@@ -7,7 +7,7 @@ public:
     Texture2D() noexcept;
     ~Texture2D();
 
-    bool loadFromFile(const char* filepath, const struct VulkanApi& api) noexcept;
+    bool loadFromFile(const char* filepath, const struct VulkanData& api) noexcept;
     void destroy(struct VkDevice_T* logicalDevice) noexcept;
 
     struct VkImage_T*        textureImage;

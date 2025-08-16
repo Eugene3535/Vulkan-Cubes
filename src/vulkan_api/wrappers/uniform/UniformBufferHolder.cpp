@@ -16,7 +16,7 @@ UniformBufferHolder::UniformBufferHolder() noexcept:
 }
 
 
-bool UniformBufferHolder::create(VulkanApi& api) noexcept
+bool UniformBufferHolder::create(VulkanData& api) noexcept
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 

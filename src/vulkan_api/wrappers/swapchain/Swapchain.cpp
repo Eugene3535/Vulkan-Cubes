@@ -95,9 +95,7 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 					}
 				};
 
-				if (VkImageView imageView; (vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageView) == VK_SUCCESS))
-					imageViews[i] = imageView;
-				else
+				if (vkCreateImageView(logicalDevice, &viewInfo, nullptr, &imageViews[i]) != VK_SUCCESS)
 					return false;
 			}
 
@@ -109,7 +107,7 @@ bool Swapchain::create(VkPhysicalDevice phisycalDevice, VkDevice logicalDevice, 
 }
 
 
-void Swapchain::destroy(struct VkDevice_T* logicalDevice) noexcept
+void Swapchain::destroy(VkDevice logicalDevice) noexcept
 {
 	if(handle)
 	{

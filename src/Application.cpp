@@ -47,38 +47,41 @@ bool Application::initVulkan() noexcept
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
 
-    {// Common
-        if(!m_instance.create())                             return false;
-        if(!m_physicalDevice.select(m_instance.handle))      return false;
-        if(!m_logicalDevice.create(m_physicalDevice.handle)) return false;
-        if(!m_surface.create(m_instance.handle, window))     return false;
-        if(!m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle, width, height)) return false;
-    }
+//  Common
+    if(m_api.initialize() != VK_SUCCESS) return false;
 
+    auto instance = m_api.getInstance();
+    auto physicalDevice = m_api.getPhysicalDevice();
+    auto device = m_api.getDevice();
+
+//  Surface
+    if(!m_surface.create(instance, window)) return false;
+    if(!m_swapchain.create(physicalDevice, device, m_surface.handle, width, height)) return false;
+    
     {// Pipeline
         std::array<ShaderModule, 2> shaders;
 
-        if(!shaders[0].loadFromFile(m_logicalDevice.handle, { "res/shaders/vertex_shader.spv" }))
+        if(!shaders[0].loadFromFile(device, { "res/shaders/vertex_shader.spv" }))
             return false;
 
-        if(!shaders[1].loadFromFile(m_logicalDevice.handle, { "res/shaders/fragment_shader.spv" }))
+        if(!shaders[1].loadFromFile(device, { "res/shaders/fragment_shader.spv" }))
             return false;
 
-        if(!m_pipeline.create(m_logicalDevice.handle, { shaders }, m_swapchain)) 
+        if(!m_pipeline.create(device, { shaders }, m_swapchain)) 
             return false;
 
-        shaders[0].destroy(m_logicalDevice.handle);
-        shaders[1].destroy(m_logicalDevice.handle);
+        shaders[0].destroy(device);
+        shaders[1].destroy(device);
     }
 
-    if(!m_commandPool.create(m_logicalDevice)) return false;
-    if(!m_sync.create(m_logicalDevice.handle)) return false;
+    if(!m_commandPool.create(device, m_api.getMainQueueFamilyIndex())) return false;
+    if(!m_sync.create(device)) return false;
 
-    VulkanApi api = 
+    VulkanData api = 
     {
-        m_physicalDevice.handle,
-        m_logicalDevice.handle,
-        m_logicalDevice.queue,
+        physicalDevice,
+        device,
+        m_api.getQueue(),
         m_commandPool.handle,
         m_pipeline.descriptorSetLayout,
         &m_texture
@@ -101,15 +104,16 @@ void Application::mainLoop() noexcept
         drawFrame();
     }
 
-    vkDeviceWaitIdle(m_logicalDevice.handle);
+    vkDeviceWaitIdle(m_api.getDevice());
 }
 
 
 void Application::cleanup() noexcept
 {
-    auto device = m_logicalDevice.handle;
+    auto device = m_api.getDevice();
 
     m_swapchain.destroy(device);
+    m_surface.destroy(m_api.getInstance());
     m_pipeline.destroy(device);
 
     m_uniformBuffers.destroy(device);
@@ -121,10 +125,7 @@ void Application::cleanup() noexcept
 
     m_commandPool.destroy(device);
 
-    m_logicalDevice.destroy();
-
-    m_surface.destroy(m_instance.handle);
-    m_instance.destroy();
+    m_api.destroy();
 
     glfwDestroyWindow(window);
     glfwTerminate();
@@ -133,19 +134,14 @@ void Application::cleanup() noexcept
 
 void Application::recreateSwapChain() noexcept
 {
+    auto device = m_api.getDevice();
     int width = 0, height = 0;
     glfwGetFramebufferSize(window, &width, &height);
 
-    while (width == 0 || height == 0)
-    {
-        glfwGetFramebufferSize(window, &width, &height);
-        glfwWaitEvents();
-    }
+    vkDeviceWaitIdle(device);
 
-    vkDeviceWaitIdle(m_logicalDevice.handle);
-
-    m_swapchain.destroy(m_logicalDevice.handle);
-    m_swapchain.create(m_physicalDevice.handle, m_logicalDevice.handle, m_surface.handle, width, height);
+    m_swapchain.destroy(device);
+    m_swapchain.create(m_api.getPhysicalDevice(), device, m_surface.handle, width, height);
 }
 
 
@@ -169,7 +165,8 @@ void Application::drawFrame() noexcept
 {
     auto currentFrame = m_sync.currentFrame;
 
-    auto device = m_logicalDevice.handle;
+    auto device = m_api.getDevice();
+    auto queue =m_api.getQueue();
 
     vkWaitForFences(device, 1, &m_sync.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -207,7 +204,7 @@ void Application::drawFrame() noexcept
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = &m_sync.renderFinishedSemaphores[currentFrame];
 
-    if (auto result = vkQueueSubmit(m_logicalDevice.queue, 1, &submitInfo, m_sync.inFlightFences[currentFrame]); result != VK_SUCCESS)
+    if (auto result = vkQueueSubmit(queue, 1, &submitInfo, m_sync.inFlightFences[currentFrame]); result != VK_SUCCESS)
     {
         printf("failed to submit draw command buffer!");
     }
@@ -220,7 +217,7 @@ void Application::drawFrame() noexcept
     presentInfo.pSwapchains        = &m_swapchain.handle;
     presentInfo.pImageIndices      = &imageIndex;
 
-    result = vkQueuePresentKHR(m_logicalDevice.queue, &presentInfo);
+    result = vkQueuePresentKHR(queue, &presentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
     {

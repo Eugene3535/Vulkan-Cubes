@@ -11,7 +11,7 @@ public:
     CommandBufferPool() noexcept;
     ~CommandBufferPool();
 
-    bool create(const class LogicalDevice& logicalDevice) noexcept;
+    bool create(struct VkDevice_T* logicalDevice, uint32_t mainQueueFamilyIndex) noexcept;
     void destroy(struct VkDevice_T* logicalDevice) noexcept;
 
     struct VkCommandPool_T* handle;

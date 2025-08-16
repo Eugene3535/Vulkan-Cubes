@@ -5,7 +5,7 @@
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
 
 
-static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, const VulkanApi& api) noexcept
+static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, const VulkanData& api) noexcept
 {
     VkCommandBuffer commandBuffer = vk::beginSingleTimeCommands(api);
 
@@ -58,7 +58,7 @@ static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout 
 }
 
 
-static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, const VulkanApi& api) noexcept
+static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, const VulkanData& api) noexcept
 {
     VkCommandBuffer commandBuffer = vk::beginSingleTimeCommands(api);
 
@@ -82,7 +82,7 @@ static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, ui
 }
 
 
-static void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, const VulkanApi& api) noexcept
+static void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, const VulkanData& api) noexcept
 {
     VkImageCreateInfo imageInfo = {};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -136,7 +136,7 @@ Texture2D::Texture2D() noexcept:
 Texture2D::~Texture2D() = default;
 
 
-bool Texture2D::loadFromFile(const char* filepath, const VulkanApi& api) noexcept
+bool Texture2D::loadFromFile(const char* filepath, const VulkanData& api) noexcept
 {
     int texWidth, texHeight, texChannels;
     stbi_uc *pixels = stbi_load(filepath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);

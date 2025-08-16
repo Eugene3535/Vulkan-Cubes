@@ -90,7 +90,7 @@ std::unique_ptr<SwapChainSupportDetails> query_swapchain_support(VkPhysicalDevic
 }
 
 
-uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, const VulkanApi& api) noexcept
+uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, const VulkanData& api) noexcept
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(api.physicalDevice, &memProperties);
@@ -107,7 +107,7 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, c
 }
 
 
-VkCommandBuffer beginSingleTimeCommands(const VulkanApi& api) noexcept
+VkCommandBuffer beginSingleTimeCommands(const VulkanData& api) noexcept
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -128,7 +128,7 @@ VkCommandBuffer beginSingleTimeCommands(const VulkanApi& api) noexcept
 }
 
 
-void endSingleTimeCommands(VkCommandBuffer commandBuffer, const VulkanApi& api) noexcept
+void endSingleTimeCommands(VkCommandBuffer commandBuffer, const VulkanData& api) noexcept
 {
     vkEndCommandBuffer(commandBuffer);
 
@@ -144,7 +144,7 @@ void endSingleTimeCommands(VkCommandBuffer commandBuffer, const VulkanApi& api) 
 }
 
 
-void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const VulkanApi& api) noexcept
+void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const VulkanData& api) noexcept
 {
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -174,7 +174,7 @@ void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyF
 }
 
 
-void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, const VulkanApi& api) noexcept
+void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, const VulkanData& api) noexcept
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands(api);
 

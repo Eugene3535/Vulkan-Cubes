@@ -10,7 +10,7 @@ class UniformBufferHolder
 public:
     UniformBufferHolder() noexcept;
 
-    bool create(struct VulkanApi& api) noexcept;
+    bool create(struct VulkanData& api) noexcept;
     void destroy(struct VkDevice_T* logicalDevice) noexcept;
 
     std::array<struct VkBuffer_T*, MAX_FRAMES_IN_FLIGHT>       uniformBuffers;

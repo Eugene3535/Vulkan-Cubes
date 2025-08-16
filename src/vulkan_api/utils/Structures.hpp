@@ -35,7 +35,7 @@ struct Vertex
 };
 
 
-struct VulkanApi
+struct VulkanData
 {
     VkPhysicalDevice physicalDevice = nullptr;
     VkDevice         logicalDevice = nullptr;

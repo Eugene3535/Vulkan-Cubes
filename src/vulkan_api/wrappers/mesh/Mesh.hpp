@@ -8,7 +8,7 @@ class Mesh
 public:
     Mesh() noexcept;
 
-    bool create(const struct VulkanApi& api) noexcept;
+    bool create(const struct VulkanData& api) noexcept;
     void destroy(struct VkDevice_T* logicalDevice) noexcept;
 
     uint32_t getIndexCount() const noexcept;
