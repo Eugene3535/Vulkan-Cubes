@@ -3,9 +3,47 @@
 #include <string>
 #include <cstdio>
 
-#include "vulkan_api/utils/Constants.hpp"
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/api/VulkanApi.hpp"
+
+
+namespace
+{
+#ifdef DEBUG
+    constexpr std::array<const char*, 1> VALIDATION_LAYERS = 
+    {
+        "VK_LAYER_KHRONOS_validation"
+    };
+
+    bool check_validation_layer_support() noexcept
+    {
+        uint32_t layerCount;
+        vkEnumerateInstanceLayerProperties(&layerCount, VK_NULL_HANDLE);
+
+        std::vector<VkLayerProperties> availableLayers(layerCount);
+        vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+        for (const char* layerName : VALIDATION_LAYERS)
+        {
+            bool layerFound = false;
+
+            for (const auto& layerProperties : availableLayers)
+            {
+                if (strcmp(layerName, layerProperties.layerName) == 0)
+                {
+                    layerFound = true;
+                    break;
+                }
+            }
+
+            if (!layerFound)
+                return false;
+        }
+
+        return true;
+    }
+#endif // !DEBUG
+}
 
 
 VulkanApi::VulkanApi() noexcept:
@@ -73,7 +111,7 @@ uint32_t VulkanApi::getMainQueueFamilyIndex() const noexcept
 VkResult VulkanApi::createInstance() noexcept
 {
 #ifdef DEBUG
-    if (!vk::check_validation_layer_support())
+    if (!check_validation_layer_support())
         return VK_ERROR_INITIALIZATION_FAILED;
 #endif // !DEBUG
 
@@ -209,8 +247,25 @@ VkResult VulkanApi::createDevice() noexcept
 
     if (supportedFeatures.fillModeNonSolid)
         enabledFeatures.fillModeNonSolid = VK_TRUE;
-    
-	if(m_mainQueueFamilyIndex = vk::get_main_queue_family_index(static_cast<void*>(m_physicalDevice)); m_mainQueueFamilyIndex != UINT32_MAX)
+
+    {// Find main queue family index
+        uint32_t queueFamilyCount;
+        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+        for (size_t i = 0; i < queueFamilies.size(); ++i)
+        {
+            if (queueFamilies[i].queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT))
+            {
+                m_mainQueueFamilyIndex = static_cast<uint32_t>(i);
+                break;
+            }
+        }
+    }
+
+	if(m_mainQueueFamilyIndex != UINT32_MAX)
     {
         const float queuePriority = 1.0f;
 

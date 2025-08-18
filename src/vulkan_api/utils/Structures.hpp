@@ -13,17 +13,6 @@
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
 
 
-struct SwapChainSupportDetails 
-{
-    VkPresentModeKHR   getPresentMode()   const noexcept;
-    VkSurfaceFormatKHR getSurfaceFormat() const noexcept;
-
-    VkSurfaceCapabilitiesKHR		capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR>	presentModes;
-};
-
-
 struct Vertex
 {
     glm::vec2 pos;

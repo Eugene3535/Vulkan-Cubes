@@ -2,6 +2,71 @@
 #include "vulkan_api/wrappers/view/MainView.hpp"
 
 
+namespace 
+{
+    struct SwapChainSupportDetails 
+    {
+        VkPresentModeKHR getPresentMode() const noexcept
+        {
+            for (const auto& availablePresentMode : presentModes)
+                if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+                    return availablePresentMode;
+
+            return VK_PRESENT_MODE_FIFO_KHR;
+        }
+
+
+        VkSurfaceFormatKHR getSurfaceFormat() const noexcept
+        {
+            if(!formats.empty())
+            {
+                for (const auto& availableFormat : formats)
+                    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
+                        availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+                            return availableFormat;
+
+                return formats[0];
+            }
+
+            return {};
+        }
+
+        VkSurfaceCapabilitiesKHR		capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR>	presentModes;
+    };
+
+
+    std::unique_ptr<SwapChainSupportDetails> query_swapchain_support(VkPhysicalDevice device, VkSurfaceKHR surface) noexcept
+    {
+        auto details = std::make_unique<SwapChainSupportDetails>();
+
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details->capabilities);
+
+        uint32_t formatCount;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+
+        if (formatCount != 0) 
+        {
+            details->formats.resize(formatCount);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details->formats.data());
+        }
+
+        uint32_t presentModeCount;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+
+        if (presentModeCount != 0) 
+        {
+            details->presentModes.resize(presentModeCount);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details->presentModes.data());
+        }
+
+        return details;
+    }
+} // empty namespace
+
+
+
 MainView::MainView() noexcept:
     m_instance(VK_NULL_HANDLE),
     m_phisycalDevice(VK_NULL_HANDLE),
@@ -69,7 +134,7 @@ VkResult MainView::recreate() noexcept
             m_swapchain = nullptr;
         }
 
-        auto swapChainSupport = vk::query_swapchain_support(m_phisycalDevice, m_surface);
+        auto swapChainSupport = query_swapchain_support(m_phisycalDevice, m_surface);
 
         if (buffer_count > swapChainSupport->capabilities.maxImageCount)
             return VK_ERROR_INITIALIZATION_FAILED;

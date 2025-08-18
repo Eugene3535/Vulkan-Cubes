@@ -2,8 +2,6 @@
 #define APPLICATION_HPP
 
 #include "vulkan_api/utils/Defines.hpp"
-#include "vulkan_api/utils/Constants.hpp"
-
 #include "vulkan_api/wrappers/view/MainView.hpp"
 #include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
@@ -16,7 +14,7 @@
 class Application
 {
 public:
-    void run() noexcept;
+    int run() noexcept;
 
 private:
     void initWindow() noexcept;

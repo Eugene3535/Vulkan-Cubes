@@ -13,7 +13,7 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
 
-void Application::run() noexcept
+int Application::run() noexcept
 {
     initWindow();
 
@@ -22,6 +22,9 @@ void Application::run() noexcept
         mainLoop();
         cleanup();
     }
+    else return -1;
+
+    return 0;
 }
 
 
@@ -49,7 +52,8 @@ bool Application::initVulkan() noexcept
     glfwGetFramebufferSize(window, &width, &height);
 
 //  Common
-    if(m_api.initialize() != VK_SUCCESS) return false;
+    if(m_api.initialize() != VK_SUCCESS) 
+        return false;
 
     auto instance       = m_api.getInstance();
     auto physicalDevice = m_api.getPhysicalDevice();
