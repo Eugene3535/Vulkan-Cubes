@@ -1,10 +1,10 @@
 #include <array>
 
-#include "vulkan_api/wrappers/shader/ShaderModule.hpp"
+#include "vulkan_api/wrappers/pipeline/stages/shader/ShaderModule.hpp"
 #include "vulkan_api/wrappers/view/MainView.hpp"
 #include "vulkan_api/wrappers/mesh/Mesh.hpp"
 #include "vulkan_api/utils/Structures.hpp"
-#include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
+#include "vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp"
 
 
 GraphicsPipeline::GraphicsPipeline() noexcept:
@@ -38,26 +38,8 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderModule
 
     const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = 
     {
-        VkPipelineShaderStageCreateInfo // vertex shader
-        {
-            .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .pNext               = nullptr,
-            .flags               = 0,
-            .stage               = VK_SHADER_STAGE_VERTEX_BIT,
-            .module              = shaders[0].handle,
-            .pName               = "main",
-            .pSpecializationInfo = nullptr
-        }, 
-        VkPipelineShaderStageCreateInfo // fragment shader
-        {
-            .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .pNext               = nullptr,
-            .flags               = 0,
-            .stage               = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module              = shaders[1].handle,
-            .pName               = "main",
-            .pSpecializationInfo = nullptr
-        }
+        shaders[0].getInfo(), 
+        shaders[1].getInfo()
     };
 
     auto bindingDescription = Vertex::getBindingDescription();

@@ -3,7 +3,7 @@
 
 #include "vulkan_api/utils/Defines.hpp"
 #include "vulkan_api/wrappers/view/MainView.hpp"
-#include "vulkan_api/wrappers/graphics_pipeline/GraphicsPipeline.hpp"
+#include "vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp"
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
 #include "vulkan_api/wrappers/sync/SyncManager.hpp"
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
