@@ -13,13 +13,10 @@ ShaderModule::ShaderModule() noexcept:
 }
 
 
-ShaderModule::~ShaderModule() = default;
-
-
-bool ShaderModule::loadFromFile(struct VkDevice_T* logicalDevice, const std::filesystem::path& filepath) noexcept
+VkResult ShaderModule::loadFromFile(VkDevice device, const std::filesystem::path& filepath) noexcept
 {
-    if(handle)
-        return true;
+    if (handle)
+        destroy(device);
 
     std::ifstream stream;
     stream.open(filepath, std::ios::ate | std::ios::binary);
@@ -33,23 +30,27 @@ bool ShaderModule::loadFromFile(struct VkDevice_T* logicalDevice, const std::fil
         stream.read(byte_code.data(), fileSize);
         stream.close();
 
-        VkShaderModuleCreateInfo shaderModuleCreateInfo = {};
-        shaderModuleCreateInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        shaderModuleCreateInfo.codeSize = byte_code.size();
-        shaderModuleCreateInfo.pCode    = reinterpret_cast<const uint32_t*>(byte_code.data());
+        const VkShaderModuleCreateInfo shaderModuleInfo = 
+        {
+            .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext    = nullptr,
+            .flags    = 0,
+            .codeSize = byte_code.size(),
+            .pCode    = reinterpret_cast<const uint32_t*>(byte_code.data())
+        };
 
-        return (vkCreateShaderModule(logicalDevice, &shaderModuleCreateInfo, nullptr, &handle) == VK_SUCCESS);
+        return vkCreateShaderModule(device, &shaderModuleInfo, nullptr, &handle);
     } 
 
-    return false;
+    return VK_INCOMPATIBLE_SHADER_BINARY_EXT;
 }
 
 
-void ShaderModule::destroy(VkDevice logicalDevice) noexcept
+void ShaderModule::destroy(VkDevice device) noexcept
 {
-    if(handle)
+    if (handle)
     {
-        vkDestroyShaderModule(logicalDevice, handle, nullptr);
+        vkDestroyShaderModule(device, handle, nullptr);
         handle = nullptr;
     }
 }

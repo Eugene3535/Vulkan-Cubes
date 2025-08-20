@@ -1,6 +1,5 @@
 
 #include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb_image.h>
 
@@ -60,16 +59,16 @@ bool Application::initVulkan() noexcept
     auto device         = m_api.getDevice();
 
 //  Main View
-    if(m_mainView.create(m_api, reinterpret_cast<uint64_t>(glfwGetWin32Window(window))) != VK_SUCCESS) 
+    if(m_mainView.create(m_api, window) != VK_SUCCESS) 
         return false;
     
     {// Pipeline
         std::array<ShaderModule, 2> shaders;
 
-        if(!shaders[0].loadFromFile(device, { "res/shaders/vertex_shader.spv" }))
+        if(shaders[0].loadFromFile(device, { "res/shaders/vertex_shader.spv" }) != VK_SUCCESS)
             return false;
 
-        if(!shaders[1].loadFromFile(device, { "res/shaders/fragment_shader.spv" }))
+        if(shaders[1].loadFromFile(device, { "res/shaders/fragment_shader.spv" }) != VK_SUCCESS)
             return false;
 
         if(!m_pipeline.create(m_mainView, shaders)) 

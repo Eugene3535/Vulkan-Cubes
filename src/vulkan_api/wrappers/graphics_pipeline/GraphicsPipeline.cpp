@@ -1,7 +1,5 @@
 #include <array>
 
-#include <vulkan/vulkan.h>
-
 #include "vulkan_api/wrappers/shader/ShaderModule.hpp"
 #include "vulkan_api/wrappers/view/MainView.hpp"
 #include "vulkan_api/wrappers/mesh/Mesh.hpp"
@@ -24,53 +22,42 @@ GraphicsPipeline::~GraphicsPipeline() = default;
 
 bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderModule> shaders) noexcept
 {
+    destroy();
+
     m_mainView = &view;
     auto device = view.getVulkanApi()->getDevice();
 
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-    uboLayoutBinding.binding            = 0;
-    uboLayoutBinding.descriptorCount    = 1;
-    uboLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.pImmutableSamplers = nullptr;
-    uboLayoutBinding.stageFlags         = VK_SHADER_STAGE_VERTEX_BIT;
+    const VkFormat format = view.getFormat();
 
-    VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
-    samplerLayoutBinding.binding            = 1;
-    samplerLayoutBinding.descriptorCount    = 1;
-    samplerLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-    samplerLayoutBinding.stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = 
-    { 
-        uboLayoutBinding, 
-        samplerLayoutBinding 
+    const VkPipelineRenderingCreateInfoKHR pipelineRenderingInfo =
+    {
+        .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+        .colorAttachmentCount    = 1,
+        .pColorAttachmentFormats = &format
     };
 
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    layoutInfo.pBindings    = bindings.data();
-
-    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
-        return false;
-
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
-    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = shaders[0].handle;
-    vertShaderStageInfo.pName = "main";
-
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
-    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = shaders[1].handle;
-    fragShaderStageInfo.pName = "main";
-
-    std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = 
+    const std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = 
     {
-        vertShaderStageInfo, 
-        fragShaderStageInfo
+        VkPipelineShaderStageCreateInfo // vertex shader
+        {
+            .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .pNext               = nullptr,
+            .flags               = 0,
+            .stage               = VK_SHADER_STAGE_VERTEX_BIT,
+            .module              = shaders[0].handle,
+            .pName               = "main",
+            .pSpecializationInfo = nullptr
+        }, 
+        VkPipelineShaderStageCreateInfo // fragment shader
+        {
+            .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .pNext               = nullptr,
+            .flags               = 0,
+            .stage               = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .module              = shaders[1].handle,
+            .pName               = "main",
+            .pSpecializationInfo = nullptr
+        }
     };
 
     auto bindingDescription = Vertex::getBindingDescription();
@@ -134,6 +121,40 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderModule
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
+    {// Descriptor Set Layout
+        const std::array<VkDescriptorSetLayoutBinding, 2> bindings = 
+        { 
+            VkDescriptorSetLayoutBinding  
+            {
+                .binding            = 0,
+                .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .descriptorCount    = 1,
+                .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
+                .pImmutableSamplers = nullptr
+            },
+            VkDescriptorSetLayoutBinding
+            {
+                .binding            = 1,
+                .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount    = 1,
+                .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = nullptr
+            }
+        };
+
+        const VkDescriptorSetLayoutCreateInfo layoutInfo = 
+        {
+            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext        = nullptr,
+            .flags        = 0,
+            .bindingCount = static_cast<uint32_t>(bindings.size()),
+            .pBindings    = bindings.data(),
+        };
+
+        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+            return false;
+    }
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
@@ -142,32 +163,27 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderModule
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS)
         return false;
 
-    const VkFormat format = m_mainView->getFormat();
-
-    const VkPipelineRenderingCreateInfoKHR pipeline_rendering_create_info =
-    {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
-        .colorAttachmentCount = 1,
-        .pColorAttachmentFormats = reinterpret_cast<const VkFormat*>(&format)
-    };
-
     VkGraphicsPipelineCreateInfo pipelineInfo = 
     {
-        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        .pNext = &pipeline_rendering_create_info,
-        .stageCount = 2,
-        .pStages = shaderStages.data(),
-        .pVertexInputState = &vertexInputInfo,
+        .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .pNext               = &pipelineRenderingInfo,
+        .flags               = 0,
+        .stageCount          = static_cast<uint32_t>(shaders.size()),
+        .pStages             = shaderStages.data(),
+        .pVertexInputState   = &vertexInputInfo,
         .pInputAssemblyState = &inputAssembly,
-        .pViewportState = &viewportState,
+        .pTessellationState  = nullptr,
+        .pViewportState      = &viewportState,
         .pRasterizationState = &rasterizer,
-        .pMultisampleState = &multisampling,
-        .pColorBlendState = &colorBlending,
-        .pDynamicState = &dynamicState,
-        .layout = layout,
-        .renderPass = nullptr,
-        .subpass = 0,
-        .basePipelineHandle = VK_NULL_HANDLE
+        .pMultisampleState   = &multisampling,
+        .pDepthStencilState  = nullptr,
+        .pColorBlendState    = &colorBlending,
+        .pDynamicState       = &dynamicState,
+        .layout              = layout,
+        .renderPass          = nullptr,
+        .subpass             = 0,
+        .basePipelineHandle  = nullptr,
+        .basePipelineIndex   = 0
     };
 
     return (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &handle) == VK_SUCCESS);

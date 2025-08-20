@@ -1,3 +1,6 @@
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
+
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/view/MainView.hpp"
 
@@ -81,17 +84,17 @@ MainView::MainView() noexcept:
 MainView::~MainView() = default;
 
 
-VkResult MainView::create(VulkanApi& api, uint64_t windowHandle) noexcept
+VkResult MainView::create(VulkanApi& api, GLFWwindow* window) noexcept
 {
     m_api = &api;
 
-    VkWin32SurfaceCreateInfoKHR surfaceInfo = 
+    const VkWin32SurfaceCreateInfoKHR surfaceInfo = 
     {
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
         .pNext = nullptr,
         .flags = 0,
         .hinstance = GetModuleHandle(nullptr),
-        .hwnd = reinterpret_cast<HWND>(windowHandle)
+        .hwnd = glfwGetWin32Window(window)
     };
 
     if(vkCreateWin32SurfaceKHR(api.getInstance(), &surfaceInfo, nullptr, &m_surface) == VK_SUCCESS)

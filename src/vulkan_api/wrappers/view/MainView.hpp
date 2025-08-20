@@ -14,7 +14,7 @@ public:
     MainView() noexcept;
     ~MainView();
 
-    VkResult create(VulkanApi& api, uint64_t windowHandle) noexcept;
+    VkResult create(VulkanApi& api, struct GLFWwindow* window) noexcept;
     VkResult recreate() noexcept;
     void     destroy()  noexcept;
 
