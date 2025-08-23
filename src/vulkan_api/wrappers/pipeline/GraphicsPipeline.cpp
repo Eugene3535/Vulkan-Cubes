@@ -8,6 +8,90 @@
 #include "vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp"
 
 
+namespace
+{
+    VkPipelineInputAssemblyStateCreateInfo create_input_assembly_stage(VkPrimitiveTopology primitive) noexcept
+    {
+        return
+        {    
+            .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+            .pNext                  = nullptr,
+            .flags                  = 0,
+            .topology               = primitive,
+            .primitiveRestartEnable = VK_FALSE
+        };
+    }
+
+
+    VkPipelineViewportStateCreateInfo create_viewport_stage() noexcept
+    {
+        return 
+        {
+            .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+            .pNext         = nullptr,
+            .flags         = 0,
+            .viewportCount = 1,
+            .pViewports    = nullptr,
+            .scissorCount  = 1,
+            .pScissors     = nullptr
+        };
+    }
+
+
+    VkPipelineRasterizationStateCreateInfo create_rasterization_stage(VkPolygonMode mode) noexcept
+    {
+        return 
+        {
+            .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            .pNext                   = nullptr,
+            .flags                   = 0,
+            .depthClampEnable        = VK_FALSE,
+            .rasterizerDiscardEnable = VK_FALSE,
+            .polygonMode             = mode,
+            .cullMode                = VK_CULL_MODE_FRONT_BIT,
+            .frontFace               = VK_FRONT_FACE_CLOCKWISE,
+            .depthBiasEnable         = VK_FALSE,
+            .depthBiasConstantFactor = 0.f,
+            .depthBiasClamp          = 0.f,
+            .depthBiasSlopeFactor    = 0.f,
+            .lineWidth               = 1.f
+        };
+    }
+
+
+    VkPipelineMultisampleStateCreateInfo create_multisampling_stage()
+    {
+        return
+        {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+            .sampleShadingEnable = VK_FALSE,
+            .minSampleShading = 1.f,
+            .pSampleMask = nullptr,
+            .alphaToCoverageEnable = VK_FALSE,
+            .alphaToOneEnable = VK_FALSE
+        };
+    }
+
+    VkPipelineColorBlendAttachmentState create_color_blend_attachment(bool enabled)
+    {
+        return
+        {
+            .blendEnable         = enabled ? VK_TRUE : VK_FALSE,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .colorBlendOp        = VK_BLEND_OP_ADD,
+            .srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .alphaBlendOp        = VK_BLEND_OP_ADD,
+            .colorWriteMask      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+        };
+    }
+}
+
+
 GraphicsPipeline::GraphicsPipeline() noexcept:
     descriptorSetLayout(nullptr),
     layout(nullptr),
@@ -53,45 +137,22 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage>
     auto vertex_input_state = std::make_unique<VertexInputState>(attributes);
     VkPipelineVertexInputStateCreateInfo vertexInputInfo = vertex_input_state->getinfo();
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
-    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    inputAssembly.primitiveRestartEnable = VK_FALSE;
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly = create_input_assembly_stage(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    VkPipelineViewportStateCreateInfo      viewportState = create_viewport_stage();
+    VkPipelineRasterizationStateCreateInfo rasterizer    = create_rasterization_stage(VK_POLYGON_MODE_FILL);
+    VkPipelineMultisampleStateCreateInfo   multisampling = create_multisampling_stage();
 
-    VkPipelineViewportStateCreateInfo viewportState = {};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.scissorCount = 1;
-
-    VkPipelineRasterizationStateCreateInfo rasterizer = {};
-    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
-
-    VkPipelineMultisampleStateCreateInfo multisampling = {};
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-    colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
-
-    VkPipelineColorBlendStateCreateInfo colorBlending{};
-    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable = VK_FALSE;
-    colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount = 1;
-    colorBlending.pAttachments = &colorBlendAttachment;
-    colorBlending.blendConstants[0] = 0.f;
-    colorBlending.blendConstants[1] = 0.f;
-    colorBlending.blendConstants[2] = 0.f;
-    colorBlending.blendConstants[3] = 0.f;
+    VkPipelineColorBlendAttachmentState colorBlendAttachment = create_color_blend_attachment(false);
+    VkPipelineColorBlendStateCreateInfo colorBlending
+    {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .logicOpEnable = VK_FALSE,
+        .logicOp = VK_LOGIC_OP_COPY,
+        .attachmentCount = 1,
+        .pAttachments = &colorBlendAttachment
+    };
 
     std::array<VkDynamicState, 2> dynamicStates = 
     {
@@ -99,10 +160,15 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage>
         VK_DYNAMIC_STATE_SCISSOR
     };
 
-    VkPipelineDynamicStateCreateInfo dynamicState = {};
-    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-    dynamicState.pDynamicStates = dynamicStates.data();
+    VkPipelineDynamicStateCreateInfo dynamicState = 
+    {
+        .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .pNext             = nullptr,
+        .flags             = 0,
+        .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+        .pDynamicStates    = dynamicStates.data()
+    };
+
 
     {// Descriptor Set Layout
         const std::array<VkDescriptorSetLayoutBinding, 2> bindings = 
@@ -138,10 +204,16 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage>
             return false;
     }
 
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = 
+    {
+        .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .pNext                  = nullptr,
+        .flags                  = 0,
+        .setLayoutCount         = 1,
+        .pSetLayouts            = &descriptorSetLayout,
+        .pushConstantRangeCount = 0,
+        .pPushConstantRanges    = nullptr
+    };
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &layout) != VK_SUCCESS)
         return false;
@@ -183,18 +255,18 @@ bool GraphicsPipeline::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_
     
     const VkImageMemoryBarrier image_memory_barrier_begin 
     {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .sType         = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .image = m_mainView->getImage(imageIndex),
+        .oldLayout     = VK_IMAGE_LAYOUT_UNDEFINED,
+        .newLayout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .image         = m_mainView->getImage(imageIndex),
         .subresourceRange = 
         {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .baseMipLevel = 0,
-            .levelCount = 1,
+            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel   = 0,
+            .levelCount     = 1,
             .baseArrayLayer = 0,
-            .layerCount = 1
+            .layerCount     = 1
         }
     };
 
