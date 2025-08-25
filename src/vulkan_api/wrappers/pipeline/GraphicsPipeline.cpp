@@ -2,6 +2,7 @@
 
 #include "vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.hpp"
 #include "vulkan_api/wrappers/pipeline/stages/vertex/VertexInputState.hpp"
+#include "vulkan_api/wrappers/pipeline/stages/uniform/DescriptorSetLayout.hpp"
 #include "vulkan_api/wrappers/view/MainView.hpp"
 #include "vulkan_api/wrappers/mesh/Mesh.hpp"
 #include "vulkan_api/utils/Structures.hpp"
@@ -167,34 +168,11 @@ bool GraphicsPipeline::create(const MainView& view, std::span<const ShaderStage>
     };
 
     {// Descriptor Set Layout
-        const std::array<VkDescriptorSetLayoutBinding, 2> bindings = 
-        { 
-            VkDescriptorSetLayoutBinding  
-            {
-                .binding            = 0,
-                .descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .descriptorCount    = 1,
-                .stageFlags         = VK_SHADER_STAGE_VERTEX_BIT,
-                .pImmutableSamplers = nullptr
-            },
-            VkDescriptorSetLayoutBinding
-            {
-                .binding            = 1,
-                .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount    = 1,
-                .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-                .pImmutableSamplers = nullptr
-            }
-        };
+        DescriptorSetLayout uniformDescriptors;
+        uniformDescriptors.addDescriptor(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+        uniformDescriptors.addDescriptor(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        const VkDescriptorSetLayoutCreateInfo layoutInfo = 
-        {
-            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .pNext        = nullptr,
-            .flags        = 0,
-            .bindingCount = static_cast<uint32_t>(bindings.size()),
-            .pBindings    = bindings.data()
-        };
+        const VkDescriptorSetLayoutCreateInfo layoutInfo = uniformDescriptors.getInfo();
 
         if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
             return false;

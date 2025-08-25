@@ -27,12 +27,17 @@ find_package(Vulkan REQUIRED)
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
+set(PIPELINE_STAGES_FILES
+	src/vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.cpp
+	src/vulkan_api/wrappers/pipeline/stages/vertex/VertexInputState.cpp
+	src/vulkan_api/wrappers/pipeline/stages/uniform/DescriptorSetLayout.cpp
+)
+
 set(SRC_FILES
 	src/vulkan_api/utils/Helpers.cpp
 	src/vulkan_api/wrappers/api/VulkanApi.cpp
 	src/vulkan_api/wrappers/view/MainView.cpp
-	src/vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.cpp
-	src/vulkan_api/wrappers/pipeline/stages/vertex/VertexInputState.cpp
+	${PIPELINE_STAGES_FILES}
 	src/vulkan_api/wrappers/pipeline/GraphicsPipeline.cpp
 	src/vulkan_api/wrappers/command_pool/CommandBufferPool.cpp
 	src/vulkan_api/wrappers/sync/SyncManager.cpp
