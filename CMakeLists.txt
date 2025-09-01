@@ -35,8 +35,8 @@ set(PIPELINE_STAGES_FILES
 
 set(SRC_FILES
 	src/vulkan_api/utils/Helpers.cpp
-	src/vulkan_api/wrappers/api/VulkanApi.cpp
-	src/vulkan_api/wrappers/view/MainView.cpp
+	src/vulkan_api/wrappers/setup/VulkanApi.cpp
+	src/vulkan_api/wrappers/presentation/MainView.cpp
 	${PIPELINE_STAGES_FILES}
 	src/vulkan_api/wrappers/pipeline/GraphicsPipeline.cpp
 	src/vulkan_api/wrappers/command_pool/CommandBufferPool.cpp

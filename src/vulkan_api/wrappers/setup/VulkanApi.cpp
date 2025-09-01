@@ -5,7 +5,7 @@
 #include <cstdio>
 
 #include "vulkan_api/utils/Helpers.hpp"
-#include "vulkan_api/wrappers/api/VulkanApi.hpp"
+#include "vulkan_api/wrappers/setup/VulkanApi.hpp"
 
 
 namespace

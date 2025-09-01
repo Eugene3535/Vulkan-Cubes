@@ -92,12 +92,12 @@ bool Application::initVulkan() noexcept
 
         state.setupShaderStages(shaders)->
             setupVertexInput(attributes)->
-                setupInputAssembler(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)->
-                    setupViewport()->
-                        setupRasterization(VK_POLYGON_MODE_FILL)->
-                            setupMultisampling()->
-                                setupColorBlending(VK_FALSE)->
-                                    setupDescriptorSetLayout(uniformDescriptors);
+            setupInputAssembler(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)->
+            setupViewport()->
+            setupRasterization(VK_POLYGON_MODE_FILL)->
+            setupMultisampling()->
+            setupColorBlending(VK_FALSE)->
+            setupDescriptorSetLayout(uniformDescriptors);
 
 
         if(m_pipeline.create(m_mainView, state) != VK_SUCCESS) 
@@ -238,7 +238,6 @@ bool Application::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t cur
     );
 
     VkExtent2D extent = m_mainView.getExtent();
-    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
 
     const VkRenderingAttachmentInfoKHR color_attachment_info = 
     {
@@ -247,18 +246,16 @@ bool Application::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t cur
         .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue = clearColor
+        .clearValue = {{ 0.0f, 0.0f, 0.0f, 1.0f }}
     };
-
-    VkRect2D renderArea = { {0, 0}, extent };
 
     const VkRenderingInfoKHR render_info =
     {
         .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
-        .renderArea = renderArea,
+        .renderArea = { {0, 0}, extent },
         .layerCount = 1,
         .colorAttachmentCount = 1,
-        .pColorAttachments = &color_attachment_info,
+        .pColorAttachments = &color_attachment_info
     };
 
     vkCmdBeginRendering(commandBuffer, &render_info);
@@ -325,14 +322,14 @@ bool Application::writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t cur
 
 void Application::drawFrame() noexcept
 {
-    auto currentFrame = m_sync.currentFrame;
+    auto frame  = m_sync.currentFrame;
     auto device = m_api.getDevice();
     auto queue  = m_api.getQueue();
 
-    vkWaitForFences(device, 1, &m_sync.inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device, 1, &m_sync.inFlightFences[frame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, m_mainView.getSwapchain(), UINT64_MAX, m_sync.imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, m_mainView.getSwapchain(), UINT64_MAX, m_sync.imageAvailableSemaphores[frame], VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -344,28 +341,28 @@ void Application::drawFrame() noexcept
         printf("failed to acquire swap chain image!");
     }
 
-    updateUniformBuffer(currentFrame);
+    updateUniformBuffer(frame);
 
-    vkResetFences(device, 1, &m_sync.inFlightFences[currentFrame]);
+    vkResetFences(device, 1, &m_sync.inFlightFences[frame]);
 
-    auto commandBuffer = m_commandPool.commandBuffers[currentFrame];
-    auto descriptorSet = m_uniformBuffers.descriptorSets[currentFrame];
+    auto commandBuffer = m_commandPool.commandBuffers[frame];
+    auto descriptorSet = m_uniformBuffers.descriptorSets[frame];
 
-    vkResetCommandBuffer(m_commandPool.commandBuffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-    writeCommandBuffer(commandBuffer, currentFrame, imageIndex, m_mesh, descriptorSet);
+    vkResetCommandBuffer(m_commandPool.commandBuffers[frame], /*VkCommandBufferResetFlagBits*/ 0);
+    writeCommandBuffer(commandBuffer, frame, imageIndex, m_mesh, descriptorSet);
 
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = m_sync.imageAvailableSemaphores.data() + currentFrame;
+    submitInfo.pWaitSemaphores = m_sync.imageAvailableSemaphores.data() + frame;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_commandPool.commandBuffers[currentFrame];
+    submitInfo.pCommandBuffers = &m_commandPool.commandBuffers[frame];
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &m_sync.renderFinishedSemaphores[currentFrame];
+    submitInfo.pSignalSemaphores = &m_sync.renderFinishedSemaphores[frame];
 
-    if (auto result = vkQueueSubmit(queue, 1, &submitInfo, m_sync.inFlightFences[currentFrame]); result != VK_SUCCESS)
+    if (auto result = vkQueueSubmit(queue, 1, &submitInfo, m_sync.inFlightFences[frame]); result != VK_SUCCESS)
     {
         printf("failed to submit draw command buffer!");
     }
@@ -373,7 +370,7 @@ void Application::drawFrame() noexcept
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores    = &m_sync.renderFinishedSemaphores[currentFrame];
+    presentInfo.pWaitSemaphores    = &m_sync.renderFinishedSemaphores[frame];
     presentInfo.swapchainCount     = 1;
     presentInfo.pSwapchains        = &m_mainView.getSwapchain();
     presentInfo.pImageIndices      = &imageIndex;
@@ -390,7 +387,7 @@ void Application::drawFrame() noexcept
         printf("failed to present swap chain image!");
     }
 
-    m_sync.currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    m_sync.currentFrame = (frame + 1) % MAX_FRAMES_IN_FLIGHT;
     
 #ifdef _WIN32
     Sleep(16);

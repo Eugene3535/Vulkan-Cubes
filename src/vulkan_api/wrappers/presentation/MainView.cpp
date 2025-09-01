@@ -2,7 +2,7 @@
 #include <GLFW/glfw3native.h>
 
 #include "vulkan_api/utils/Helpers.hpp"
-#include "vulkan_api/wrappers/view/MainView.hpp"
+#include "vulkan_api/wrappers/presentation/MainView.hpp"
 
 
 namespace 

@@ -6,11 +6,9 @@
 CommandBufferPool::CommandBufferPool() noexcept:
     handle(nullptr)
 {
-
+    for(auto& buffer : commandBuffers)
+        buffer = nullptr;
 }
-
-
-CommandBufferPool::~CommandBufferPool() = default;
 
 
 bool CommandBufferPool::create(VkDevice device, uint32_t mainQueueFamilyIndex) noexcept
@@ -33,7 +31,8 @@ bool CommandBufferPool::create(VkDevice device, uint32_t mainQueueFamilyIndex) n
 }
 
 
-void CommandBufferPool::destroy(VkDevice logicalDevice) noexcept
+void CommandBufferPool::destroy(VkDevice device) noexcept
 {
-    vkDestroyCommandPool(logicalDevice, handle, nullptr);
+    if(handle)
+        vkDestroyCommandPool(device, handle, nullptr);
 }

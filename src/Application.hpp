@@ -2,7 +2,7 @@
 #define APPLICATION_HPP
 
 #include "vulkan_api/utils/Defines.hpp"
-#include "vulkan_api/wrappers/view/MainView.hpp"
+#include "vulkan_api/wrappers/presentation/MainView.hpp"
 #include "vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp"
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
 #include "vulkan_api/wrappers/sync/SyncManager.hpp"
@@ -31,8 +31,8 @@ private:
 
     VulkanApi m_api;
     MainView  m_mainView;
-    
     GraphicsPipeline  m_pipeline;
+    
     CommandBufferPool m_commandPool;
     SyncManager       m_sync;
 
