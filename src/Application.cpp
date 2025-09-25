@@ -186,43 +186,32 @@ void Application::recreateSwapChain() noexcept
 
 void Application::updateUniformBuffer(uint32_t currentImage) noexcept
 {
-    UniformBufferObject ubo = {};
-
     static float cnt = 0;
     cnt += 1;
 
-    ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
-    ubo.model = glm::rotate(ubo.model, glm::radians(cnt), glm::vec3(0, 0, 1));
-    ubo.view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-    ubo.proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
+    model = glm::rotate(model, glm::radians(cnt), glm::vec3(0, 0, 1));
+    glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+    glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
 
-    ubo.proj[1][1] *= -1;
+    proj[1][1] *= -1;
 
-    memcpy(m_uniformBuffers.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+    auto mvp = proj * view * model;
+
+    memcpy(m_uniformBuffers.uniformBuffersMapped[currentImage], &mvp, sizeof(glm::mat4));
 }
 
 
-bool Application::writeCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, const Mesh& mesh, VkDescriptorSet descriptorSet) noexcept
+void Application::writeCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, const Mesh& mesh, VkDescriptorSet descriptorSet) noexcept
 {
-    if(Render::begin(cmd, m_mainView, imageIndex) != VK_SUCCESS)
-        return false;
-
-//  Rendering all objects
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getHandle());
-
-    VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
     VkDeviceSize offsets[] = {0};
-
+    VkBuffer vertexBuffers[] = {mesh.vertexBuffer};
+    
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getHandle());
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(cmd, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getLayout(), 0, 1, &descriptorSet, 0, nullptr);
-
     vkCmdDrawIndexed(cmd, mesh.getIndexCount(), 1, 0, 0, 0);
-
-    if(Render::end(cmd, m_mainView, imageIndex) != VK_SUCCESS)
-        return false;
-
-    return true;
 }
 
 
@@ -254,8 +243,15 @@ void Application::drawFrame() noexcept
     auto commandBuffer = m_commandPool.commandBuffers[frame];
     auto descriptorSet = m_uniformBuffers.descriptorSets[frame];
 
-    vkResetCommandBuffer(m_commandPool.commandBuffers[frame], /*VkCommandBufferResetFlagBits*/ 0);
+    vkResetCommandBuffer(commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
+
+    if(Render::begin(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
+        return;
+
     writeCommandBuffer(commandBuffer, imageIndex, m_mesh, descriptorSet);
+
+    if(Render::end(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
+        return;
 
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSubmitInfo submitInfo = {};

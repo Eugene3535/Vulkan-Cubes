@@ -4,12 +4,12 @@
 #include "vulkan_api/wrappers/mesh/Mesh.hpp"
 
 
-static const std::vector<Vertex> vertices = 
+static const std::vector<float> vertices = 
 {
-    {{ -0.5f, -0.5f }, { 1.0f, 0.0f }},
-    {{  0.5f, -0.5f }, { 0.0f, 0.0f }},
-    {{  0.5f,  0.5f }, { 0.0f, 1.0f }},
-    {{ -0.5f,  0.5f }, { 1.0f, 1.0f }}
+    -0.5f, -0.5f, 1.0f, 0.0f,
+     0.5f, -0.5f, 0.0f, 0.0f,
+     0.5f,  0.5f, 0.0f, 1.0f,
+    -0.5f,  0.5f, 1.0f, 1.0f
 };
 
 

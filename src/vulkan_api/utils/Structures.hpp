@@ -13,13 +13,6 @@
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
 
 
-struct Vertex
-{
-    glm::vec2 pos;
-    glm::vec2 texCoord;
-};
-
-
 struct VulkanData
 {
     VkPhysicalDevice physicalDevice = nullptr;
@@ -29,14 +22,5 @@ struct VulkanData
     VkDescriptorSetLayout descriptorSetLayout = nullptr;
     Texture2D* texture = nullptr;
 };
-
-
-struct UniformBufferObject
-{
-    alignas(16) glm::mat4 model;
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
-
 
 #endif // !STRUCTURS_HPP
