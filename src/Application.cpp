@@ -187,9 +187,6 @@ void Application::updateUniformBuffer(uint32_t currentImage, bool b) noexcept
 {
     if(b)
     {
-        static float cnt = 0;
-        cnt += 1;
-
         glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
         glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
         glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
@@ -250,34 +247,24 @@ void Application::drawFrame() noexcept
         printf("failed to acquire swap chain image!");
     }
 
-    
-
     vkResetFences(device, 1, &m_sync.inFlightFences[frame]);
 
     auto commandBuffer = m_commandPool.commandBuffers[frame];
     auto descriptorSet = m_uniformBuffers.descriptorSets[frame];
-
-    updateUniformBuffer(frame);
 
     vkResetCommandBuffer(commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
 
     if(Render::begin(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
         return;
 
+    updateUniformBuffer(frame, true);
+    writeCommandBuffer(commandBuffer, imageIndex, m_mesh, descriptorSet);
+
+    updateUniformBuffer(frame, false);
     writeCommandBuffer(commandBuffer, imageIndex, m_mesh, descriptorSet);
 
     if(Render::end(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
         return;
-
-    // updateUniformBuffer(frame, true);
-
-    // if(Render::begin(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
-    //     return;
-
-    // writeCommandBuffer(commandBuffer, imageIndex, m_mesh, descriptorSet);
-
-    // if(Render::end(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
-    //     return;
 
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSubmitInfo submitInfo = {};
