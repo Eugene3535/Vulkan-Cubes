@@ -1,6 +1,8 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "vulkan_api/utils/Defines.hpp"
 #include "vulkan_api/wrappers/presentation/MainView.hpp"
 #include "vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp"
@@ -22,7 +24,7 @@ private:
     void mainLoop() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void updateUniformBuffer(uint32_t currentImage) noexcept;
+    void updateUniformBuffer(uint32_t currentImage, bool b = false) noexcept;
 
     void writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh& mesh, VkDescriptorSet descriptorSet) noexcept;
     void drawFrame() noexcept;
@@ -40,6 +42,8 @@ private:
     Mesh      m_mesh;
 
     UniformBufferHolder m_uniformBuffers;
+
+    glm::mat4 m_mvp = glm::mat4(1.f);
 
     bool framebufferResized = false;
     int32_t m_width = 0;

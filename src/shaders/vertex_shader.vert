@@ -1,6 +1,6 @@
 #version 460
 
-layout(binding = 0) uniform UniformBufferObject 
+layout(push_constant) uniform constants 
 {
     mat4 modelViewProjection;
 } matrices;

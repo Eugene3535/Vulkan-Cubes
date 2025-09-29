@@ -2,7 +2,7 @@
 #include <cstring>
 
 #include <GLFW/glfw3.h>
-#include <glm/gtc/matrix_transform.hpp>
+
 #include <stb_image.h>
 
 #include "vulkan_api/utils/Helpers.hpp"
@@ -85,7 +85,6 @@ bool Application::initVulkan() noexcept
         };
 
         DescriptorSetLayout uniformDescriptors;
-        uniformDescriptors.addDescriptor(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
         uniformDescriptors.addDescriptor(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
         GraphicsPipeline::State state;
@@ -184,21 +183,35 @@ void Application::recreateSwapChain() noexcept
 }
 
 
-void Application::updateUniformBuffer(uint32_t currentImage) noexcept
+void Application::updateUniformBuffer(uint32_t currentImage, bool b) noexcept
 {
-    static float cnt = 0;
-    cnt += 1;
+    if(b)
+    {
+        static float cnt = 0;
+        cnt += 1;
 
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
-    model = glm::rotate(model, glm::radians(cnt), glm::vec3(0, 0, 1));
-    glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-    glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
+        glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+        glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
 
-    proj[1][1] *= -1;
+        proj[1][1] *= -1;
 
-    auto mvp = proj * view * model;
+        m_mvp = proj * view * model;
+    }
+    else
+    {
+        static float cnt = 0;
+        cnt += 1;
 
-    memcpy(m_uniformBuffers.uniformBuffersMapped[currentImage], &mvp, sizeof(glm::mat4));
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
+        model = glm::rotate(model, glm::radians(cnt), glm::vec3(0, 0, 1));
+        glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+        glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
+
+        proj[1][1] *= -1;
+
+        m_mvp = proj * view * model;
+    }
 }
 
 
@@ -211,6 +224,7 @@ void Application::writeCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, c
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(cmd, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.getLayout(), 0, 1, &descriptorSet, 0, nullptr);
+    vkCmdPushConstants(cmd, m_pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &m_mvp);
     vkCmdDrawIndexed(cmd, mesh.getIndexCount(), 1, 0, 0, 0);
 }
 
@@ -236,12 +250,14 @@ void Application::drawFrame() noexcept
         printf("failed to acquire swap chain image!");
     }
 
-    updateUniformBuffer(frame);
+    
 
     vkResetFences(device, 1, &m_sync.inFlightFences[frame]);
 
     auto commandBuffer = m_commandPool.commandBuffers[frame];
     auto descriptorSet = m_uniformBuffers.descriptorSets[frame];
+
+    updateUniformBuffer(frame);
 
     vkResetCommandBuffer(commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
 
@@ -252,6 +268,16 @@ void Application::drawFrame() noexcept
 
     if(Render::end(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
         return;
+
+    // updateUniformBuffer(frame, true);
+
+    // if(Render::begin(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
+    //     return;
+
+    // writeCommandBuffer(commandBuffer, imageIndex, m_mesh, descriptorSet);
+
+    // if(Render::end(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
+    //     return;
 
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSubmitInfo submitInfo = {};

@@ -1,5 +1,7 @@
 #include <array>
 
+#include <glm/mat4x4.hpp>
+
 #include "vulkan_api/wrappers/presentation/MainView.hpp"
 #include "vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp"
 
@@ -147,7 +149,7 @@ GraphicsPipeline::State* GraphicsPipeline::State::setupColorBlending(VkBool32 en
 
     auto stages = static_cast<GraphicsPipelineStages*>(m_data.get());
 
-    stages->colorBlending = VkPipelineColorBlendAttachmentState 
+    stages->colorBlending = VkPipelineColorBlendAttachmentState
     {
         .blendEnable         = enabled,
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
@@ -243,6 +245,12 @@ VkResult GraphicsPipeline::create(const class MainView& view, const GraphicsPipe
     if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
         return VK_ERROR_INITIALIZATION_FAILED;
 
+
+    VkPushConstantRange pushConstantRange = {};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; 
+    pushConstantRange.offset = 0; 
+    pushConstantRange.size = sizeof(glm::mat4);
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = 
     {
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -250,8 +258,8 @@ VkResult GraphicsPipeline::create(const class MainView& view, const GraphicsPipe
         .flags                  = 0,
         .setLayoutCount         = 1,
         .pSetLayouts            = &m_descriptorSetLayout,
-        .pushConstantRangeCount = 0,
-        .pPushConstantRanges    = nullptr
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges    = &pushConstantRange
     };
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS)
