@@ -6,11 +6,11 @@
 #include "vulkan_api/utils/Defines.hpp"
 #include "vulkan_api/wrappers/presentation/MainView.hpp"
 #include "vulkan_api/wrappers/pipeline/GraphicsPipeline.hpp"
+#include "vulkan_api/wrappers/pipeline/descriptors/DescriptorPool.hpp"
 #include "vulkan_api/wrappers/command_pool/CommandBufferPool.hpp"
 #include "vulkan_api/wrappers/sync/SyncManager.hpp"
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
 #include "vulkan_api/wrappers/mesh/Mesh.hpp"
-#include "vulkan_api/wrappers/uniform/UniformBufferHolder.hpp"
 
 
 class Application
@@ -34,14 +34,14 @@ private:
     VulkanApi m_api;
     MainView  m_mainView;
     GraphicsPipeline  m_pipeline;
+    std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_descriptorSets {};
+    std::unique_ptr<DescriptorPool> m_descriptorPool;
     
     CommandBufferPool m_commandPool;
     SyncManager       m_sync;
 
     Texture2D m_texture;
     Mesh      m_mesh;
-
-    UniformBufferHolder m_uniformBuffers;
 
     glm::mat4 m_mvp = glm::mat4(1.f);
 

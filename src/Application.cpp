@@ -47,7 +47,6 @@ void Application::initWindow() noexcept
                 app->m_height = height;
                 app->framebufferResized = true;
             }
-                
         });
     }
 }
@@ -104,6 +103,33 @@ bool Application::initVulkan() noexcept
 
         shaders[0].destroy(device);
         shaders[1].destroy(device);
+
+        m_descriptorPool = std::make_unique<DescriptorPool>(device);
+
+        {
+            std::array<VkDescriptorPoolSize, 1> poolSizes = 
+            {
+                VkDescriptorPoolSize
+                {
+                    .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .descriptorCount = MAX_FRAMES_IN_FLIGHT
+                }
+            };
+
+            if(m_descriptorPool->create(poolSizes) != VK_SUCCESS)
+                return false;
+        }
+
+        {
+            std::array<VkDescriptorSetLayout, MAX_FRAMES_IN_FLIGHT> layouts = 
+            { 
+                m_pipeline.getDescriptorSetLayout(), 
+                m_pipeline.getDescriptorSetLayout() 
+            };
+
+            if(m_descriptorPool->allocateDescriptorSets(m_descriptorSets, layouts) != VK_SUCCESS)
+                return false;
+        }
     }
 
     if(!m_commandPool.create(device, m_api.getMainQueueFamilyIndex()))
@@ -122,13 +148,22 @@ bool Application::initVulkan() noexcept
         &m_texture
     };
 
-    if(!m_texture.loadFromFile("res/textures/container.jpg", data))
-        return false;
+    {
+        if(!m_texture.loadFromFile("res/textures/container.jpg", data))
+            return false;
+                
+        VkDescriptorImageInfo imageInfo = 
+        {
+            .sampler     = m_texture.textureSampler,
+            .imageView   = m_texture.textureImageView,
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        };
+
+        m_descriptorPool->writeCombinedImageSampler(&imageInfo, m_descriptorSets[0], 0);
+        m_descriptorPool->writeCombinedImageSampler(&imageInfo, m_descriptorSets[1], 0);
+    }
 
     if(!m_mesh.create(data)) 
-        return false;
-
-    if(!m_uniformBuffers.create(data)) 
         return false;
 
     return true;
@@ -154,8 +189,7 @@ void Application::cleanup() noexcept
     m_mainView.destroy();
 
     m_pipeline.destroy(device);
-
-    m_uniformBuffers.destroy(device);
+    m_descriptorPool->destroy();
 
     m_texture.destroy(device);
     m_mesh.destroy(device);
@@ -187,7 +221,7 @@ void Application::updateUniformBuffer(uint32_t currentImage, bool b) noexcept
 {
     if(b)
     {
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0));
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1, 1, 0));
         glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
         glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
 
@@ -250,7 +284,7 @@ void Application::drawFrame() noexcept
     vkResetFences(device, 1, &m_sync.inFlightFences[frame]);
 
     auto commandBuffer = m_commandPool.commandBuffers[frame];
-    auto descriptorSet = m_uniformBuffers.descriptorSets[frame];
+    auto descriptorSet = m_descriptorSets[frame];
 
     vkResetCommandBuffer(commandBuffer, /*VkCommandBufferResetFlagBits*/ 0);
 

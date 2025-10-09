@@ -23,7 +23,6 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 set(GLM_BUILD_LIBRARY OFF CACHE BOOL "" FORCE)
 
-find_package(Vulkan REQUIRED)
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
@@ -38,12 +37,12 @@ set(SRC_FILES
 	src/vulkan_api/wrappers/setup/VulkanApi.cpp
 	src/vulkan_api/wrappers/presentation/MainView.cpp
 	${PIPELINE_STAGES_FILES}
+	src/vulkan_api/wrappers/pipeline/descriptors/DescriptorPool.cpp
 	src/vulkan_api/wrappers/pipeline/GraphicsPipeline.cpp
 	src/vulkan_api/wrappers/command_pool/CommandBufferPool.cpp
 	src/vulkan_api/wrappers/sync/SyncManager.cpp
 	src/vulkan_api/wrappers/texture/Texture2D.cpp
 	src/vulkan_api/wrappers/mesh/Mesh.cpp
-	src/vulkan_api/wrappers/uniform/UniformBufferHolder.cpp
 	src/vulkan_api/wrappers/render/Render.cpp
 	src/Application.cpp
 	src/main.cpp

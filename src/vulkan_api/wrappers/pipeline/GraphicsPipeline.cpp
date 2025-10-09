@@ -216,13 +216,13 @@ VkResult GraphicsPipeline::create(const class MainView& view, const GraphicsPipe
 
     VkPipelineColorBlendStateCreateInfo colorBlending
     {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .logicOpEnable = VK_FALSE,
-        .logicOp = VK_LOGIC_OP_COPY,
+        .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .pNext           = nullptr,
+        .flags           = 0,
+        .logicOpEnable   = VK_FALSE,
+        .logicOp         = VK_LOGIC_OP_COPY,
         .attachmentCount = 1,
-        .pAttachments = &stages->colorBlending
+        .pAttachments    = &stages->colorBlending
     };
 
     std::array<VkDynamicState, 2> dynamicStates = 

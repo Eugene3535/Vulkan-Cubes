@@ -1,7 +1,7 @@
 #ifndef VULKAN_DEFINES_HPP
 #define VULKAN_DEFINES_HPP
 
-#define MAX_FRAMES_IN_FLIGHT 2
+#define MAX_FRAMES_IN_FLIGHT 2U
 
 #define BEGIN_NAMESPACE_VK namespace vk {
 #define END_NAMESPACE_VK }
