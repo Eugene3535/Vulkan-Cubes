@@ -4,16 +4,20 @@
 #include <cstdint>
 #include <memory>
 
+#include <vulkan/vulkan.h>
+
 #include "vulkan_api/utils/Defines.hpp"
 #include "vulkan_api/utils/Structures.hpp"
 
 BEGIN_NAMESPACE_VK
 
-uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, const VulkanData& api) noexcept;
-VkCommandBuffer beginSingleTimeCommands(const VulkanData& api) noexcept;
-void endSingleTimeCommands(VkCommandBuffer commandBuffer, const VulkanData& api) noexcept;
-void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const VulkanData& api) noexcept;
-void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, const VulkanData& api) noexcept;
+uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice GPU) noexcept;
+
+VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool pool) noexcept;
+void endSingleTimeCommands(VkCommandBuffer cmd, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept;
+
+void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDevice device, VkPhysicalDevice GPU) noexcept;
+void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept;
 
 END_NAMESPACE_VK
 

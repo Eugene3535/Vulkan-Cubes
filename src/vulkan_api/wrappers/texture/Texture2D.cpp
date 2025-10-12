@@ -5,9 +5,9 @@
 #include "vulkan_api/wrappers/texture/Texture2D.hpp"
 
 
-static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, const VulkanData& api) noexcept
+static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept
 {
-    VkCommandBuffer commandBuffer = vk::beginSingleTimeCommands(api);
+    VkCommandBuffer commandBuffer = vk::beginSingleTimeCommands(device, pool);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -54,13 +54,13 @@ static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout 
         0, nullptr,
         1, &barrier);
 
-    vk::endSingleTimeCommands(commandBuffer, api);
+    vk::endSingleTimeCommands(commandBuffer, device, pool, queue);
 }
 
 
-static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, const VulkanData& api) noexcept
+static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept
 {
-    VkCommandBuffer commandBuffer = vk::beginSingleTimeCommands(api);
+    VkCommandBuffer commandBuffer = vk::beginSingleTimeCommands(device, pool);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -78,11 +78,11 @@ static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, ui
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    vk::endSingleTimeCommands(commandBuffer, api);
+    vk::endSingleTimeCommands(commandBuffer, device, pool, queue);
 }
 
 
-static void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, const VulkanData& api) noexcept
+static void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, VkPhysicalDevice GPU, VkDevice device) noexcept
 {
     VkImageCreateInfo imageInfo = {};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -99,25 +99,25 @@ static void createImage(uint32_t width, uint32_t height, VkFormat format, VkImag
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateImage(api.logicalDevice, &imageInfo, nullptr, &image) != VK_SUCCESS)
+    if (vkCreateImage(device, &imageInfo, nullptr, &image) != VK_SUCCESS)
     {
         printf("failed to create image!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(api.logicalDevice, image, &memRequirements);
+    vkGetImageMemoryRequirements(device, image, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = vk::findMemoryType(memRequirements.memoryTypeBits, properties, api);
+    allocInfo.memoryTypeIndex = vk::findMemoryType(memRequirements.memoryTypeBits, properties, GPU);
 
-    if (vkAllocateMemory(api.logicalDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
+    if (vkAllocateMemory(device, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
     {
         printf("failed to allocate image memory!");
     }
 
-    vkBindImageMemory(api.logicalDevice, image, imageMemory, 0);
+    vkBindImageMemory(device, image, imageMemory, 0);
 }
 
 
@@ -133,10 +133,7 @@ Texture2D::Texture2D() noexcept:
 }
 
 
-Texture2D::~Texture2D() = default;
-
-
-bool Texture2D::loadFromFile(const char* filepath, const VulkanData& api) noexcept
+bool Texture2D::loadFromFile(const char* filepath, VkPhysicalDevice GPU, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept
 {
     int texWidth, texHeight, texChannels;
     stbi_uc *pixels = stbi_load(filepath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -147,23 +144,23 @@ bool Texture2D::loadFromFile(const char* filepath, const VulkanData& api) noexce
     
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    vk::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, api);
+    vk::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, GPU);
 
     void *data;
-    vkMapMemory(api.logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
+    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
     memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(api.logicalDevice, stagingBufferMemory);
+    vkUnmapMemory(device, stagingBufferMemory);
 
     stbi_image_free(pixels);
 
-    createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory, api);
+    createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory, GPU, device);
 
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, api);
-    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), api);
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, api);
+    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, device, pool, queue);
+    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), device, pool, queue);
+    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, device, pool, queue);
 
-    vkDestroyBuffer(api.logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(api.logicalDevice, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
 
 
     VkImageViewCreateInfo viewInfo{};
@@ -177,7 +174,7 @@ bool Texture2D::loadFromFile(const char* filepath, const VulkanData& api) noexce
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
-    if (vkCreateImageView(api.logicalDevice, &viewInfo, nullptr, &textureImageView) != VK_SUCCESS)
+    if (vkCreateImageView(device, &viewInfo, nullptr, &textureImageView) != VK_SUCCESS)
     {
         printf("failed to create texture image view!");
 
@@ -185,7 +182,7 @@ bool Texture2D::loadFromFile(const char* filepath, const VulkanData& api) noexce
     }
 
     VkPhysicalDeviceProperties properties = {};
-    vkGetPhysicalDeviceProperties(api.physicalDevice, &properties);
+    vkGetPhysicalDeviceProperties(GPU, &properties);
 
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -202,7 +199,7 @@ bool Texture2D::loadFromFile(const char* filepath, const VulkanData& api) noexce
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    if (vkCreateSampler(api.logicalDevice, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
     {
         printf("failed to create texture sampler!");
 
@@ -213,11 +210,10 @@ bool Texture2D::loadFromFile(const char* filepath, const VulkanData& api) noexce
 }
 
 
-void Texture2D::destroy(VkDevice logicalDevice) noexcept
+void Texture2D::destroy(VkDevice device) noexcept
 {
-    vkDestroySampler(logicalDevice, textureSampler, nullptr);
-    vkDestroyImageView(logicalDevice, textureImageView, nullptr);
-
-    vkDestroyImage(logicalDevice, textureImage, nullptr);
-    vkFreeMemory(logicalDevice, textureImageMemory, nullptr);
+    vkDestroySampler(device, textureSampler, nullptr);
+    vkDestroyImageView(device, textureImageView, nullptr);
+    vkDestroyImage(device, textureImage, nullptr);
+    vkFreeMemory(device, textureImageMemory, nullptr);
 }

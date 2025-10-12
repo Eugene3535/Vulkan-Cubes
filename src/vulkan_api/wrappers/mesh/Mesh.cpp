@@ -30,26 +30,26 @@ Mesh::Mesh() noexcept:
 }
 
 
-bool Mesh::create(const VulkanData& api) noexcept
+bool Mesh::create(VkPhysicalDevice GPU, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept
 {
     {// Vertex buffer
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        vk::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, api);
+        vk::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, GPU);
 
         void *data;
-        vkMapMemory(api.logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(api.logicalDevice, stagingBufferMemory);
+        vkUnmapMemory(device, stagingBufferMemory);
 
-        vk::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory, api);
+        vk::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory, device, GPU);
 
-        vk::copyBuffer(stagingBuffer, vertexBuffer, bufferSize, api);
+        vk::copyBuffer(stagingBuffer, vertexBuffer, bufferSize, device, pool, queue);
 
-        vkDestroyBuffer(api.logicalDevice, stagingBuffer, nullptr);
-        vkFreeMemory(api.logicalDevice, stagingBufferMemory, nullptr);
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
     {// Index buffer
@@ -57,19 +57,19 @@ bool Mesh::create(const VulkanData& api) noexcept
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
-        vk::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, api);
+        vk::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory, device, GPU);
 
         void *data;
-        vkMapMemory(api.logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(api.logicalDevice, stagingBufferMemory);
+        vkUnmapMemory(device, stagingBufferMemory);
 
-        vk::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory, api);
+        vk::createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory, device, GPU);
 
-        vk::copyBuffer(stagingBuffer, indexBuffer, bufferSize, api);
+        vk::copyBuffer(stagingBuffer, indexBuffer, bufferSize, device, pool, queue);
 
-        vkDestroyBuffer(api.logicalDevice, stagingBuffer, nullptr);
-        vkFreeMemory(api.logicalDevice, stagingBufferMemory, nullptr);
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
     }
 
     return true;

@@ -3,20 +3,22 @@
 
 #include <cstdint>
 
+#include <vulkan/vulkan.h>
+
 class Mesh
 {
 public:
     Mesh() noexcept;
 
-    bool create(const struct VulkanData& api) noexcept;
-    void destroy(struct VkDevice_T* logicalDevice) noexcept;
+    bool create(VkPhysicalDevice GPU, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept;
+    void destroy(VkDevice device) noexcept;
 
     uint32_t getIndexCount() const noexcept;
     
-    struct VkBuffer_T*       vertexBuffer;
-    struct VkDeviceMemory_T* vertexBufferMemory;
-    struct VkBuffer_T*       indexBuffer;
-    struct VkDeviceMemory_T* indexBufferMemory;
+    VkBuffer       vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+    VkBuffer       indexBuffer;
+    VkDeviceMemory indexBufferMemory;
 };
 
 #endif

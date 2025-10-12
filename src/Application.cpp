@@ -60,9 +60,9 @@ bool Application::initVulkan() noexcept
     if(m_api.initialize() != VK_SUCCESS) 
         return false;
 
-    auto instance       = m_api.getInstance();
-    auto physicalDevice = m_api.getPhysicalDevice();
-    auto device         = m_api.getDevice();
+    auto instance = m_api.getInstance();
+    auto GPU      = m_api.getPhysicalDevice();
+    auto device   = m_api.getDevice();
 
 //  Main View
     if(m_mainView.create(m_api, window) != VK_SUCCESS) 
@@ -138,18 +138,11 @@ bool Application::initVulkan() noexcept
     if(!m_sync.create(device)) 
         return false;
 
-    VulkanData data = 
-    {
-        physicalDevice,
-        device,
-        m_api.getQueue(),
-        m_commandPool.handle,
-        m_pipeline.getDescriptorSetLayout(),
-        &m_texture
-    };
+    auto queue = m_api.getQueue();
+    auto pool = m_commandPool.handle;
 
     {
-        if(!m_texture.loadFromFile("res/textures/container.jpg", data))
+        if(!m_texture.loadFromFile("res/textures/container.jpg", GPU, device, pool, queue))
             return false;
                 
         VkDescriptorImageInfo imageInfo = 
@@ -163,7 +156,7 @@ bool Application::initVulkan() noexcept
         m_descriptorPool->writeCombinedImageSampler(&imageInfo, m_descriptorSets[1], 0);
     }
 
-    if(!m_mesh.create(data)) 
+    if(!m_mesh.create(GPU, device, pool, queue)) 
         return false;
 
     return true;

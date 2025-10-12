@@ -5,10 +5,10 @@
 
 BEGIN_NAMESPACE_VK
 
-uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, const VulkanData& api) noexcept
+uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice GPU) noexcept
 {
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(api.physicalDevice, &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(GPU, &memProperties);
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
     {
@@ -22,16 +22,16 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, c
 }
 
 
-VkCommandBuffer beginSingleTimeCommands(const VulkanData& api) noexcept
+VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool pool) noexcept
 {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = api.commandPool;
+    allocInfo.commandPool = pool;
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(api.logicalDevice, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -43,23 +43,23 @@ VkCommandBuffer beginSingleTimeCommands(const VulkanData& api) noexcept
 }
 
 
-void endSingleTimeCommands(VkCommandBuffer commandBuffer, const VulkanData& api) noexcept
+void endSingleTimeCommands(VkCommandBuffer cmd, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept
 {
-    vkEndCommandBuffer(commandBuffer);
+    vkEndCommandBuffer(cmd);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
+    submitInfo.pCommandBuffers = &cmd;
 
-    vkQueueSubmit(api.queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(api.queue);
+    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(queue);
 
-    vkFreeCommandBuffers(api.logicalDevice, api.commandPool, 1, &commandBuffer);
+    vkFreeCommandBuffers(device, pool, 1, &cmd);
 }
 
 
-void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, const VulkanData& api) noexcept
+void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDevice device, VkPhysicalDevice GPU) noexcept
 {
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -67,37 +67,37 @@ void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyF
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(api.logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+    if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
     {
         printf("failed to create buffer!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(api.logicalDevice, buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, api);
+    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, GPU);
 
-    if (vkAllocateMemory(api.logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+    if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
     {
         printf("failed to allocate buffer memory!");
     }
 
-    vkBindBufferMemory(api.logicalDevice, buffer, bufferMemory, 0);
+    vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
 
-void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, const VulkanData& api) noexcept
+void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size, VkDevice device, VkCommandPool pool, VkQueue queue) noexcept
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(api);
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, pool);
 
     VkBufferCopy copyRegion{};
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-    endSingleTimeCommands(commandBuffer, api);
+    endSingleTimeCommands(commandBuffer, device, pool, queue);
 }
 
 END_NAMESPACE_VK
