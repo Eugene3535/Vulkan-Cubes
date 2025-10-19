@@ -35,6 +35,10 @@ private:
     GraphicsPipeline  m_pipeline;
     std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> m_descriptorSets {};
     std::unique_ptr<DescriptorPool> m_descriptorPool;
+
+    VkImage        m_depthImage       = VK_NULL_HANDLE;
+    VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
+    VkImageView    m_depthImageView   = VK_NULL_HANDLE;
     
     CommandBufferPool m_commandPool;
     SyncManager       m_sync;

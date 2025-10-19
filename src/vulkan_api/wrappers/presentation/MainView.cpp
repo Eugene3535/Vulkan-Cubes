@@ -199,24 +199,8 @@ VkResult MainView::recreate() noexcept
             {
                 for (size_t i = 0; i < m_images.size(); ++i)
                 {
-                    VkImageViewCreateInfo viewInfo = 
-                    {
-                        .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                        .image            = m_images[i],
-                        .viewType         = VK_IMAGE_VIEW_TYPE_2D,
-                        .format           = m_format,
-                        .subresourceRange = 
-                        {
-                            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                            .baseMipLevel   = 0,
-                            .levelCount     = 1,
-                            .baseArrayLayer = 0,
-                            .layerCount     = 1
-                        }
-                    };
-
-                    if (vkCreateImageView(device, &viewInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS)
-                        return VK_ERROR_INITIALIZATION_FAILED;
+                    if (vk::createImageView2D(device, m_images[i], m_format, VK_IMAGE_ASPECT_COLOR_BIT, m_imageViews[i]) != VK_SUCCESS)
+                        return VK_ERROR_INITIALIZATION_FAILED;  
                 }
 
                 return VK_SUCCESS;
