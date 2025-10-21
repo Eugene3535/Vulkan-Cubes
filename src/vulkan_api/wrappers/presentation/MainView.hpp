@@ -1,7 +1,7 @@
 #ifndef MAIN_VIEW_HPP
 #define MAIN_VIEW_HPP
 
-#include <array>
+#include <vector>
 
 #include "vulkan_api/wrappers/setup/VulkanApi.hpp"
 
@@ -9,8 +9,6 @@
 class MainView
 {
 public:
-    static constexpr uint32_t min_buffer_count = 2U;
-
     MainView() noexcept;
     ~MainView();
 
@@ -33,8 +31,8 @@ private:
     VkSurfaceKHR   m_surface;
     VkSwapchainKHR m_swapchain;
 
-    std::array<VkImage, min_buffer_count>     m_images;
-    std::array<VkImageView, min_buffer_count> m_imageViews;
+    std::vector<VkImage>     m_images;
+    std::vector<VkImageView> m_imageViews;
 
     VkFormat   m_format;
     VkExtent2D m_extent;
