@@ -48,7 +48,7 @@ VkResult ShaderStage::loadFromFile(VkDevice device, VkShaderStageFlagBits stage,
         }
     } 
 
-    return VK_INCOMPATIBLE_SHADER_BINARY_EXT;
+    return VK_ERROR_INITIALIZATION_FAILED;
 }
 
 

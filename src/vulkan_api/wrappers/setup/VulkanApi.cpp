@@ -157,7 +157,7 @@ VkResult VulkanApi::createInstance() noexcept
         .applicationVersion = 1,
         .pEngineName        = "Shiny Engine",
         .engineVersion      = 1,
-        .apiVersion         = VK_API_VERSION_1_4
+        .apiVersion         = VK_API_VERSION_1_3
     };
 
     VkInstanceCreateInfo instanceInfo = 

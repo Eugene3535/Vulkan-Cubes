@@ -125,7 +125,7 @@ VkResult MainView::create(VulkanApi& api, GLFWwindow* window) noexcept
     };
 
     if (vkCreateXcbSurfaceKHR(api.getInstance(), &surfaceInfo, nullptr, &m_surface) == VK_SUCCESS)
-        return recreate();
+        return recreate(true);
 #endif
 
     return VK_ERROR_INITIALIZATION_FAILED;

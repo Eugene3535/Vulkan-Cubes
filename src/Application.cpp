@@ -1,4 +1,4 @@
-
+#include <thread>
 #include <cstring>
 
 #include <GLFW/glfw3.h>
@@ -10,6 +10,9 @@
 #include "vulkan_api/wrappers/render/Render.hpp"
 
 #include "Application.hpp"
+
+using Clock = std::chrono::high_resolution_clock;
+using TimeStamp = std::chrono::time_point<Clock>;
 
 
 const uint32_t WIDTH = 800;
@@ -212,8 +215,20 @@ bool Application::initVulkan() noexcept
 
 void Application::mainLoop() noexcept
 {
+    TimeStamp timestamp = Clock::now();
+
     while (!glfwWindowShouldClose(window))
     {
+        const auto dt = Clock::now() - timestamp;
+
+        if (dt < std::chrono::milliseconds(16)) // 60 FPS regulation
+        { 
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            continue;
+        }
+
+        timestamp = Clock::now();
+
         glfwPollEvents();
         drawFrame();
     }
@@ -377,8 +392,4 @@ void Application::drawFrame() noexcept
     }
 
     m_sync.currentFrame = (frame + 1) % MAX_FRAMES_IN_FLIGHT;
-    
-#ifdef _WIN32
-    Sleep(16);
-#endif
 }
