@@ -8,6 +8,7 @@
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/pipeline/stages/shader/ShaderStage.hpp"
 #include "vulkan_api/wrappers/render/Render.hpp"
+#include "Camera.hpp"
 
 #include "Application.hpp"
 
@@ -17,6 +18,45 @@ using TimeStamp = std::chrono::time_point<Clock>;
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
+
+Camera camera(glm::vec3(0.f, 0.f, 3.f));
+
+float lastX = WIDTH / 2.f;
+float lastY = HEIGHT / 2.f;
+
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+
+void processInput(GLFWwindow *window, float dt)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, dt);
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, dt);
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, dt);
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, dt);
+}
 
 
 int Application::run() noexcept
@@ -52,6 +92,9 @@ void Application::initWindow() noexcept
                 app->framebufferResized = true;
             }
         });
+
+        glfwSetCursorPosCallback(window, mouse_callback);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 }
 
@@ -217,6 +260,9 @@ void Application::mainLoop() noexcept
 {
     TimeStamp timestamp = Clock::now();
 
+    float deltaTime = 0.f;
+    float lastFrame = 0.f;
+
     while (!glfwWindowShouldClose(window))
     {
         const auto dt = Clock::now() - timestamp;
@@ -228,6 +274,12 @@ void Application::mainLoop() noexcept
         }
 
         timestamp = Clock::now();
+
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        processInput(window, deltaTime);
 
         glfwPollEvents();
         drawFrame();
@@ -271,33 +323,32 @@ void Application::recreateSwapChain() noexcept
 }
 
 
-void Application::updateUniformBuffer(bool b) noexcept
+// world space positions of our cubes
+static const std::array<glm::vec3, 10> cubePositions =
 {
-    static float cnt = 0;
-    cnt += 1;
+    glm::vec3(0.0f,  0.0f,  0.0f),
+    glm::vec3(2.0f,  5.0f, -15.0f),
+    glm::vec3(-1.5f, -2.2f, -2.5f),
+    glm::vec3(-3.8f, -2.0f, -12.3f),
+    glm::vec3(2.4f, -0.4f, -3.5f),
+    glm::vec3(-1.7f,  3.0f, -7.5f),
+    glm::vec3(1.3f, -2.0f, -2.5f),
+    glm::vec3(1.5f,  2.0f, -2.5f),
+    glm::vec3(1.5f,  0.2f, -1.5f),
+    glm::vec3(-1.3f,  1.0f, -1.5f)
+};
 
-    if(b)
-    {
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1, 1, -1.f));
-        model = glm::rotate(model, glm::radians(-cnt), glm::vec3(0, 1, 0));
-        glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-        glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
 
-        proj[1][1] *= -1;
+void Application::updateUniformBuffer(const glm::vec3& pos, float angle) noexcept
+{
+    glm::mat4 model = glm::translate(glm::mat4(1.f), pos);
+    model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+    // glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+    auto view = camera.GetViewMatrix();
+    glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.f);
+    proj[1][1] *= -1;
 
-        m_mvp = proj * view * model;
-    }
-    else
-    {
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f));
-        model = glm::rotate(model, glm::radians(cnt), glm::vec3(1, 0, 0));
-        glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 3.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-        glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.0f);
-
-        proj[1][1] *= -1;
-
-        m_mvp = proj * view * model;
-    }
+    m_mvp = proj * view * model; 
 }
 
 
@@ -346,11 +397,12 @@ void Application::drawFrame() noexcept
     if(Render::begin(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
         return;
 
-    updateUniformBuffer(true);
-    writeCommandBuffer(commandBuffer, imageIndex, descriptorSet);
-
-    updateUniformBuffer(false);
-    writeCommandBuffer(commandBuffer, imageIndex, descriptorSet);
+    for (size_t i = 0; i < cubePositions.size(); ++i)
+    {
+        const float angle = 20.f * i;
+        updateUniformBuffer(cubePositions[i], angle);
+        writeCommandBuffer(commandBuffer, imageIndex, descriptorSet);
+    }
 
     if(Render::end(commandBuffer, m_mainView, imageIndex) != VK_SUCCESS)
         return;

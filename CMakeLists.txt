@@ -48,6 +48,7 @@ set(SRC_FILES
 
 set(HDR_FILES
 	src/Application.hpp
+	src/Camera.hpp
 	src/vulkan_api/resources/VkResourceHolder.hpp
 	src/vulkan_api/utils/Defines.hpp
 	src/vulkan_api/utils/Helpers.hpp

@@ -23,7 +23,7 @@ private:
     void mainLoop() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void updateUniformBuffer(bool b = false) noexcept;
+    void updateUniformBuffer(const glm::vec3& pos, float angle) noexcept;
 
     void writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, VkDescriptorSet descriptorSet) noexcept;
     void drawFrame() noexcept;
