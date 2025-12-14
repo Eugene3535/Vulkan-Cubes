@@ -173,26 +173,26 @@ VkResult VulkanApi::createInstance() noexcept
     };
 
 #ifdef DEBUG
-        instanceInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
-        instanceInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
+    instanceInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
+    instanceInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
 
-        VkDebugUtilsMessengerCreateInfoEXT debugInfo = 
-        {
-            .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-            .pNext           = nullptr,
-            .flags           = 0,
-            .messageSeverity = 0,
-            .messageType     = 0,
-            .pfnUserCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) noexcept
-            {
-                printf("validation layer: %s\n", pCallbackData->pMessage);
+    VkDebugUtilsMessengerCreateInfoEXT debugInfo = 
+    {
+       .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+       .pNext           = nullptr,
+       .flags           = 0,
+       .messageSeverity = 0,
+       .messageType     = 0,
+       .pfnUserCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) noexcept
+       {
+           printf("validation layer: %s\n", pCallbackData->pMessage);
 
-                return VK_FALSE;
-            },
-            .pUserData = nullptr
-        };
+           return VK_FALSE;
+       },
+       .pUserData = nullptr
+    };
 
-        instanceInfo.pNext = static_cast<const void*>(&debugInfo);
+    instanceInfo.pNext = static_cast<const void*>(&debugInfo);
 #endif // !DEBUG
 
     return vkCreateInstance(&instanceInfo, nullptr, &m_instance);

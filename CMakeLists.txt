@@ -81,21 +81,21 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 include(${CMAKE_SOURCE_DIR}/cmake/compile_shaders.cmake)
 compile_shaders(${CMAKE_SOURCE_DIR}/src/shaders ${CMAKE_BINARY_DIR}/shaders)
 
-add_compile_definitions(DEBUG=$<CONFIG:Debug> GLM_FORCE_INTRINSICS GLM_FORCE_EXPLICIT_CTOR)
-
-if(WIN32)
-	add_compile_definitions(VK_USE_PLATFORM_WIN32_KHR GLFW_EXPOSE_NATIVE_WIN32)
-endif()
-
-if(UNIX)
-	add_compile_definitions(VK_USE_PLATFORM_XCB_KHR GLFW_EXPOSE_NATIVE_X11)
-endif()
-
 add_executable(${PROJECT_NAME} ${SRC_FILES} ${HDR_FILES})
 target_sources(${PROJECT_NAME} PRIVATE ${SHADER_FILES})
 
 add_subdirectory(${EXTERNAL_SOURCE_DIR}/glfw glfw)
 add_subdirectory(${EXTERNAL_SOURCE_DIR}/glm glm)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:DEBUG>
+	GLM_FORCE_INTRINSICS 
+	GLM_FORCE_EXPLICIT_CTOR
+	$<$<BOOL:${WIN32}>:VK_USE_PLATFORM_WIN32_KHR>
+	$<$<BOOL:${WIN32}>:GLFW_EXPOSE_NATIVE_WIN32>
+	$<$<BOOL:${UNIX}>:VK_USE_PLATFORM_XCB_KHR>
+	$<$<BOOL:${UNIX}>:GLFW_EXPOSE_NATIVE_X11>
+)
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
