@@ -23,7 +23,7 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-set(GLM_BUILD_LIBRARY OFF CACHE BOOL "" FORCE)
+set(CGLM_USE_TESTS OFF CACHE BOOL "Enable tests" FORCE)
 
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
@@ -85,12 +85,11 @@ add_executable(${PROJECT_NAME} ${SRC_FILES} ${HDR_FILES})
 target_sources(${PROJECT_NAME} PRIVATE ${SHADER_FILES})
 
 add_subdirectory(${EXTERNAL_SOURCE_DIR}/glfw glfw)
-add_subdirectory(${EXTERNAL_SOURCE_DIR}/glm glm)
+add_subdirectory(${EXTERNAL_SOURCE_DIR}/cglm cglm)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:DEBUG>
-	GLM_FORCE_INTRINSICS 
-	GLM_FORCE_EXPLICIT_CTOR
+	CGLM_USE_ANONYMOUS_STRUCT
 	$<$<BOOL:${WIN32}>:VK_USE_PLATFORM_WIN32_KHR>
 	$<$<BOOL:${WIN32}>:GLFW_EXPOSE_NATIVE_WIN32>
 	$<$<BOOL:${UNIX}>:VK_USE_PLATFORM_XCB_KHR>
@@ -105,7 +104,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 	${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES} glfw glm)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${Vulkan_LIBRARIES} glfw cglm)
 
 if(UNIX)
 	target_link_libraries(${PROJECT_NAME} PRIVATE xcb)

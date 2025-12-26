@@ -1,7 +1,8 @@
 #ifndef APPLICATION_HPP
 #define APPLICATION_HPP
 
-#include <glm/gtc/matrix_transform.hpp>
+#include <cglm/struct/vec3.h>
+#include <cglm/call/mat4.h>
 
 #include "vulkan_api/utils/Defines.hpp"
 #include "vulkan_api/wrappers/presentation/MainView.hpp"
@@ -23,7 +24,7 @@ private:
     void mainLoop() noexcept;
     void cleanup() noexcept;
     void recreateSwapChain() noexcept;
-    void updateUniformBuffer(const glm::vec3& pos, float angle) noexcept;
+    void updateUniformBuffer(vec3s pos, float angle) noexcept;
 
     void writeCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, VkDescriptorSet descriptorSet) noexcept;
     void drawFrame() noexcept;
@@ -45,7 +46,7 @@ private:
     Buffer m_vertices;
     Buffer m_indices;
 
-    glm::mat4 m_mvp = glm::mat4(1.f);
+    mat4s m_mvp;
 
     bool framebufferResized = false;
     int32_t m_width = 0;

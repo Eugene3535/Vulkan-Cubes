@@ -1,6 +1,6 @@
 #include <array>
 
-#include <glm/mat4x4.hpp>
+#include <cglm/struct/mat4.h>
 
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/presentation/MainView.hpp"
@@ -256,7 +256,7 @@ VkResult GraphicsPipeline::create(const class MainView& view, const GraphicsPipe
     VkPushConstantRange pushConstantRange = {};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; 
     pushConstantRange.offset = 0; 
-    pushConstantRange.size = sizeof(glm::mat4);
+    pushConstantRange.size = sizeof(mat4s);
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo = 
     {

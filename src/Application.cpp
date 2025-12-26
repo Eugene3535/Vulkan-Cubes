@@ -2,7 +2,7 @@
 #include <cstring>
 
 #include <GLFW/glfw3.h>
-
+#include <cglm/struct/affine-pre.h>
 #include <stb_image.h>
 
 #include "vulkan_api/utils/Helpers.hpp"
@@ -22,7 +22,7 @@ using TimeStamp = std::chrono::time_point<Clock>;
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-Camera camera(glm::vec3(0.f, 0.f, 3.f));
+Camera camera;
 
 float lastX = WIDTH / 2.f;
 float lastY = HEIGHT / 2.f;
@@ -34,16 +34,16 @@ void processInput(GLFWwindow *window, float dt)
         glfwSetWindowShouldClose(window, true);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, dt);
+        camera.ProcessKeyboard(camera.FORWARD, dt);
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, dt);
+        camera.ProcessKeyboard(camera.BACKWARD, dt);
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, dt);
+        camera.ProcessKeyboard(camera.LEFT, dt);
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, dt);
+        camera.ProcessKeyboard(camera.RIGHT, dt);
 }
 
 
@@ -343,30 +343,30 @@ void Application::recreateSwapChain() noexcept
 
 
 // world space positions of our cubes
-static const std::array<glm::vec3, 10> cubePositions =
+static const std::array<vec3s, 10> cubePositions =
 {
-    glm::vec3(0.0f,  0.0f,  0.0f),
-    glm::vec3(2.0f,  5.0f, -15.0f),
-    glm::vec3(-1.5f, -2.2f, -2.5f),
-    glm::vec3(-3.8f, -2.0f, -12.3f),
-    glm::vec3(2.4f, -0.4f, -3.5f),
-    glm::vec3(-1.7f,  3.0f, -7.5f),
-    glm::vec3(1.3f, -2.0f, -2.5f),
-    glm::vec3(1.5f,  2.0f, -2.5f),
-    glm::vec3(1.5f,  0.2f, -1.5f),
-    glm::vec3(-1.3f,  1.0f, -1.5f)
+    vec3s { 0.0f,  0.0f,  0.0f },
+    vec3s { 2.0f,  5.0f, -15.0f },
+    vec3s { -1.5f, -2.2f, -2.5f },
+    vec3s { -3.8f, -2.0f, -12.3f },
+    vec3s { 2.4f, -0.4f, -3.5f },
+    vec3s { -1.7f,  3.0f, -7.5f },
+    vec3s { 1.3f, -2.0f, -2.5f },
+    vec3s { 1.5f,  2.0f, -2.5f },
+    vec3s { 1.5f,  0.2f, -1.5f },
+    vec3s { -1.3f,  1.0f, -1.5f }
 };
 
 
-void Application::updateUniformBuffer(const glm::vec3& pos, float angle) noexcept
+void Application::updateUniformBuffer(vec3s pos, float angle) noexcept
 {
-    glm::mat4 model = glm::translate(glm::mat4(1.f), pos);
-    model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+    mat4s model = glms_translate(glms_mat4_identity(), pos);
+    model = glms_rotate(model, glm_rad(angle), vec3s {1.0f, 0.3f, 0.5f});
     auto view = camera.GetViewMatrix();
-    glm::mat4 proj = glm::perspective(glm::radians(60.0f), m_width / (float)m_height, 0.1f, 100.f);
-    proj[1][1] *= -1;
+    mat4s proj = glms_perspective(glm_rad(60.f), m_width / (float)m_height, 0.1f, 100.f);
+    proj.col[1].y *= -1;
 
-    m_mvp = proj * view * model; 
+    m_mvp = glms_mat4_mul(glms_mat4_mul(proj, view), model); 
 }
 
 
@@ -377,7 +377,7 @@ void Application::writeCommandBuffer(VkCommandBuffer cmd, uint32_t imageIndex, V
 
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(cmd, m_indices.handle, 0, VK_INDEX_TYPE_UINT32);
-    vkCmdPushConstants(cmd, m_pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &m_mvp);
+    vkCmdPushConstants(cmd, m_pipeline.getLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mat4s), &m_mvp);
     vkCmdDrawIndexed(cmd, m_indices.size, 1, 0, 0, 0);
 }
 

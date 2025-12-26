@@ -3,7 +3,7 @@
 
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#include <glm/common.hpp>
+#include <cglm/util.h>
 
 #include "vulkan_api/utils/Helpers.hpp"
 #include "vulkan_api/wrappers/presentation/MainView.hpp"
@@ -143,8 +143,8 @@ VkResult MainView::recreate(bool depth) noexcept
         else
         {
             VkExtent2D actualExtent = currentExtent;
-            actualExtent.width  = glm::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-            actualExtent.height = glm::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+            actualExtent.width  = glm_clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+            actualExtent.height = glm_clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
             return actualExtent;
         }
